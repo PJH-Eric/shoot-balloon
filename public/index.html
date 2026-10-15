@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#15112E">
+<meta name="description" content="射氣球：夜市攤位的限時搶分遊戲。氣球從下往上飄，射破加分、誤射白鴿與炸彈氣球扣分；單機三段電腦難度，最多 5 人共用同一片天空先射先得分，支援觀戰、邀請連結與聊天室。">
+<title>射氣球</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/latency.css?v=20261015">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2315112E'/%3E%3Cpath d='M50 12C72 12 82 30 82 48 82 68 64 82 50 84 36 82 18 68 18 48 18 30 28 12 50 12Z' fill='%23E8483A' stroke='%23FFF1D6' stroke-width='5'/%3E%3Cpath d='M50 84l-6 9h12z' fill='%23E8483A' stroke='%23FFF1D6' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M34 30c4-8 12-10 16-10' stroke='%23FFF1D6' stroke-width='6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+</head>
+<body>
+<div id="bgdeco" aria-hidden="true"></div>
+
+<div id="app">
+
+  <!-- 所有畫面共用的右上角設定入口，固定在安全區內 -->
+  <button class="tk tk-icon settings-fab" data-tone="paper" id="b-settings" type="button"
+          title="開啟遊戲設定" aria-label="開啟遊戲設定" aria-haspopup="dialog"
+          aria-controls="settings-modal" aria-expanded="false" data-icon="gear"></button>
+
+  <!-- ============================== 首頁 ============================== -->
+  <section class="screen active" id="s-home" aria-label="首頁">
+    <div class="sa sa-full"><div class="sa-view" tabindex="0" aria-label="首頁內容">
+      <div class="page page-center">
+        <a class="lobby-link" href="https://pjh-eric.github.io/game-lobby/" data-icon="back"><span>回遊戲大廳</span></a>
+        <div class="marquee">
+          <div class="bulbs" aria-hidden="true"></div>
+          <div class="mq-art" id="home-art" aria-hidden="true"></div>
+          <p class="mq-kicker">夜市限定・限時 60 秒</p>
+          <h1 class="mq-title">射氣球</h1>
+          <div class="bulbs" aria-hidden="true"></div>
+        </div>
+        <div class="home-btns">
+          <button class="tk tk-xl" data-tone="gold" id="b-solo" type="button" data-icon="target"><span>單機練習（對戰電腦）</span></button>
+          <button class="tk tk-xl" data-tone="red" id="b-online" type="button" data-icon="users"><span>線上對戰（最多 5 人）</span></button>
+          <div class="home-row">
+            <button class="tk" data-tone="teal" id="b-help" type="button" data-icon="book"><span>玩法與圖鑑</span></button>
+            <button class="tk" data-tone="paper" id="b-stats" type="button" data-icon="medal"><span>我的戰績</span></button>
+          </div>
+        </div>
+        <p class="home-note">氣球從攤位下面往上飄，<b>射破加分</b>；白鴿氣球、祈福天燈和炸彈氣球<b>不能射</b>，射到會扣分。線上全部玩家共用同一片天空，同一顆氣球<b>誰先射到誰得分</b>。</p>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============================== 單機設定 ============================== -->
+  <section class="screen" id="s-solo" aria-label="單機練習設定">
+    <div class="sa sa-full"><div class="sa-view" tabindex="0" aria-label="單機設定內容">
+      <div class="page">
+        <div class="panel">
+          <div class="panel-head">
+            <button class="tk tk-sm" data-tone="paper" data-back="s-home" type="button" data-icon="back"><span>返回</span></button>
+            <h2 tabindex="-1">單機練習</h2>
+          </div>
+
+          <label class="fld"><span class="fld-lbl">你的名字</span>
+            <input class="fld-in" id="solo-nick" type="text" maxlength="12" placeholder="射擊高手" autocomplete="nickname"></label>
+
+          <div class="group"><h3 class="lbl" id="lbl-solo-pace">難度</h3>
+            <div class="seg" id="opt-pace" role="radiogroup" aria-labelledby="lbl-solo-pace"></div>
+            <p class="hint" id="pace-blurb"></p></div>
+
+          <div class="group"><h3 class="lbl" id="lbl-solo-ai">電腦對手</h3>
+            <div class="seg" id="opt-aicount" role="radiogroup" aria-labelledby="lbl-solo-ai"></div>
+            <p class="hint">電腦的強弱跟著上面選的難度走。0 個就是一個人挑戰高分。</p></div>
+
+          <div class="group"><h3 class="lbl" id="lbl-solo-round">一局多長</h3>
+            <div class="seg" id="opt-round" role="radiogroup" aria-labelledby="lbl-solo-round"></div></div>
+
+          <p class="note">單機和線上用的是同一套規則與同一套電腦射手，練熟了直接上線打。第一次玩可以先看「玩法教學」。</p>
+          <div class="panel-foot">
+            <button class="tk" data-tone="paper" id="b-solo-tutorial" type="button" data-icon="book"><span>玩法教學</span></button>
+            <button class="tk tk-lg" data-tone="gold" id="b-solo-start" type="button" data-icon="play"><span>開始射擊</span></button>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============================== 線上大廳 ============================== -->
+  <section class="screen" id="s-lobby" aria-label="線上大廳">
+    <div class="sa sa-full"><div class="sa-view" tabindex="0" aria-label="線上大廳內容">
+      <div class="page">
+        <div class="panel wide">
+          <div class="panel-head">
+            <button class="tk tk-sm" data-tone="paper" data-back="s-home" type="button" data-icon="back"><span>返回</span></button>
+            <h2 tabindex="-1">線上大廳</h2>
+          </div>
+
+          <div class="conn-row">
+            <span class="dot" id="conn-dot" aria-hidden="true"></span>
+            <span id="conn-text">尚未連線</span>
+            <button class="tk tk-sm" data-tone="sky" id="b-reconnect" type="button" hidden><span>重新連線</span></button>
+          </div>
+
+          <!-- 邀請落地卡：從邀請連結進來時先停在這裡，確認名字後才會真的加入 -->
+          <div class="invite-card" id="invite-card" hidden role="region" aria-labelledby="invite-card-title">
+            <h3 id="invite-card-title">你收到一張邀請</h3>
+            <p class="invite-meta" id="invite-meta" aria-live="polite">正在確認邀請連結…</p>
+            <label class="fld"><span class="fld-lbl">你在房間裡的名字</span>
+              <input class="fld-in" id="invite-nick" type="text" maxlength="12" placeholder="輸入名字" autocomplete="nickname"></label>
+            <p class="fld-err" id="invite-nick-err" role="alert" hidden></p>
+            <div class="row-btns">
+              <button class="tk tk-lg" data-tone="gold" id="b-invite-join" type="button" disabled data-icon="door"><span>確認並加入</span></button>
+              <button class="tk" data-tone="paper" id="b-invite-skip" type="button"><span>先不加入</span></button>
+            </div>
+          </div>
+
+          <label class="fld"><span class="fld-lbl">玩家暱稱</span>
+            <input class="fld-in" id="lobby-nick" type="text" maxlength="12" placeholder="射擊高手" autocomplete="nickname"></label>
+
+          <div class="lobby-grid">
+            <div class="lobby-box">
+              <h3 class="lbl">開一間新房</h3>
+              <label class="fld"><span class="fld-lbl">房間名稱（可留空）</span>
+                <input class="fld-in" id="room-name" type="text" maxlength="24" placeholder="例如：週五夜市場"></label>
+              <div class="setrow">
+                <span class="setlbl" id="lbl-private">私人房間<small>只能用邀請連結進來</small></span>
+                <button class="sw" id="room-private" type="button" role="switch" aria-checked="false" aria-labelledby="lbl-private"><span class="sw-knob"></span></button>
+              </div>
+              <button class="tk" data-tone="red" id="b-create" type="button" data-icon="plus"><span>建立房間</span></button>
+            </div>
+            <div class="lobby-box">
+              <h3 class="lbl">用房號加入</h3>
+              <label class="fld"><span class="fld-lbl">五碼房號</span>
+                <input class="fld-in code" id="join-code" type="text" maxlength="5" placeholder="ABCDE"
+                       inputmode="text" autocapitalize="characters" autocomplete="off"></label>
+              <button class="tk" data-tone="teal" id="b-join" type="button" data-icon="door"><span>加入房間</span></button>
+              <p class="hint">房號不含容易看錯的 0、O、1、I。</p>
+            </div>
+          </div>
+
+          <h3 class="lbl">公開房間 <span class="pill" id="rooms-count">0</span></h3>
+          <div class="roomlist" id="room-list" aria-live="polite"></div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============================== 對戰畫面 ============================== -->
+  <section class="screen" id="s-game" aria-label="對戰畫面">
+    <div class="game-shell" id="game-shell">
+
+      <!-- 左側資訊欄：寬版固定在左，Summary 在上、聊天室在下；窄版是從左邊滑出的面板 -->
+      <aside class="side" id="side" aria-label="對戰資訊與聊天">
+        <div class="side-head">
+          <h2 class="side-title">資訊</h2>
+          <button class="tk tk-icon tk-sm" data-tone="paper" id="b-side-close" type="button" aria-label="收起資訊欄" data-icon="close"></button>
+        </div>
+
+        <div class="side-sum">
+          <div class="sa sa-sum"><div class="sa-view" tabindex="0" aria-label="操作摘要">
+            <section class="sum" id="sum" aria-label="操作摘要">
+              <div class="sum-state" id="sum-state" aria-live="polite"></div>
+              <p class="sum-goal" id="sum-goal"></p>
+              <p class="sum-how" id="sum-how"></p>
+              <div class="sum-room" id="sum-room"></div>
+              <ol class="rank" id="rank-list" aria-label="即時排行"></ol>
+              <div class="mystat" id="my-stat"></div>
+            </section>
+          </div></div>
+        </div>
+
+        <div class="side-chat" id="side-chat">
+          <h3 class="chat-title">房間聊天室<span class="unread" id="chat-unread" hidden>0</span></h3>
+          <div class="sa sa-chat"><div class="sa-view" id="chat-log" tabindex="0" aria-live="polite" aria-label="聊天訊息"></div></div>
+          <form class="chatbar" id="chat-form" autocomplete="off">
+            <input class="fld-in" id="chat-input" type="text" maxlength="120" placeholder="說點什麼…" aria-label="輸入聊天訊息">
+            <button class="tk tk-icon" data-tone="gold" id="b-chat-send" type="submit" aria-label="送出訊息" data-icon="send"></button>
+          </form>
+          <p class="chat-state" id="chat-state" role="status"></p>
+        </div>
+
+        <div class="side-actions" id="side-actions"></div>
+      </aside>
+
+      <!-- 主舞台：盡量大 -->
+      <div class="stage" id="stage">
+        <div class="hud" id="hud">
+          <button class="tk tk-icon tk-sm" data-tone="paper" id="b-quit" type="button" title="離開這一局" aria-label="離開這一局" data-icon="back"></button>
+          <button class="tk tk-icon tk-sm hud-sidebtn" data-tone="paper" id="b-side-toggle" type="button" aria-label="開關資訊欄" aria-expanded="true" aria-controls="side" data-icon="panel"><span class="unread" id="chat-unread2" hidden>0</span></button>
+          <div class="hud-time" id="hud-time"><span class="hud-lbl">剩餘</span><b id="hud-clock">60</b><span class="hud-unit">秒</span></div>
+          <div class="hud-stage" id="hud-stage">準備中</div>
+          <div class="hud-score" id="hud-score-box"><span class="hud-lbl">我的分數</span><b id="hud-score">0</b></div>
+          <div class="hud-chip hud-combo" id="hud-combo" hidden><b id="hud-combo-n">0</b> 連擊</div>
+          <div class="hud-chip hud-buff" id="hud-buff" hidden>分數加倍</div>
+          <button class="tk tk-icon tk-sm" data-tone="paper" id="b-pause" type="button" aria-label="暫停" data-icon="pause" hidden></button>
+        </div>
+        <div class="timebar" aria-hidden="true"><span id="timebar-fill"></span></div>
+
+        <div class="field-wrap" id="field-wrap">
+          <div class="field" id="field" tabindex="0" role="application"
+               aria-label="射擊場。用滑鼠或手指點擊氣球射擊；鍵盤用方向鍵移動準星，空白鍵或 Enter 發射。">
+            <div class="sky" aria-hidden="true"></div>
+            <div class="balloon-layer" id="balloon-layer" aria-hidden="true"></div>
+            <div class="counter" aria-hidden="true"></div>
+            <div class="fx" id="fx" aria-hidden="true"></div>
+            <div class="xhair" id="xhair" aria-hidden="true"></div>
+          </div>
+          <p class="sr-only" id="live-say" role="status" aria-live="polite"></p>
+
+          <!-- 窄版把即時排行貼在舞台上緣：不用開面板也看得到誰領先 -->
+          <div class="livebar" id="live-bar" aria-hidden="true"></div>
+
+          <!-- 等待／暫停／結算／房間結束都用蓋在舞台上的浮層，不另外換路由 -->
+          <div class="overlay" id="ov-wait" hidden>
+            <div class="ovcard" role="dialog" aria-labelledby="ov-wait-title">
+              <h3 id="ov-wait-title">準備開始</h3>
+              <div class="sa sa-ov"><div class="sa-view" tabindex="0" aria-label="房間設定">
+                <div class="seatlist" id="seat-list"></div>
+                <div class="manage" id="ai-manage" hidden><span class="lbl2" id="lbl-ai-add">加電腦對手</span><div class="seg wrap" id="ai-add" role="group" aria-labelledby="lbl-ai-add"></div></div>
+                <div class="manage" id="round-manage" hidden><span class="lbl2" id="lbl-round-pick">一局多長</span><div class="seg" id="round-pick" role="radiogroup" aria-labelledby="lbl-round-pick"></div></div>
+                <div class="manage" id="pace-manage" hidden><span class="lbl2" id="lbl-pace-pick">難度</span><div class="seg wrap" id="pace-pick" role="radiogroup" aria-labelledby="lbl-pace-pick"></div></div>
+                <p class="ovnote" id="ov-wait-note"></p>
+              </div></div>
+              <div class="ovbtns" id="ov-wait-btns"></div>
+            </div>
+          </div>
+
+          <div class="overlay" id="ov-pause" hidden>
+            <div class="ovcard slim" role="dialog" aria-labelledby="ov-pause-title">
+              <h3 id="ov-pause-title">暫停中</h3>
+              <p class="ovnote">計時與氣球都停住了，繼續之後從原本的位置接著飄。</p>
+              <div class="ovbtns">
+                <button class="tk tk-lg" data-tone="gold" id="b-resume" type="button" data-icon="play"><span>繼續射擊</span></button>
+                <button class="tk" data-tone="paper" id="b-pause-quit" type="button" data-icon="home"><span>回到首頁</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="overlay" id="ov-result" hidden>
+            <div class="ovcard wide" role="dialog" aria-labelledby="ov-result-title">
+              <div class="trophy" id="ov-trophy" aria-hidden="true"></div>
+              <h3 id="ov-result-title">時間到！</h3>
+              <div class="sa sa-ov"><div class="sa-view" tabindex="0" aria-label="本局成績">
+                <div class="resulttable" id="result-table"></div>
+              </div></div>
+              <p class="ovnote" id="ov-result-note" role="status"></p>
+              <div class="ovbtns three" id="ov-result-btns">
+                <button class="tk tk-lg" data-tone="gold" id="b-again" type="button" data-icon="repeat"><span>再來一局</span></button>
+                <button class="tk" data-tone="teal" id="b-toroom" type="button" data-icon="door"><span>回到房間</span></button>
+                <button class="tk" data-tone="paper" id="b-tohome" type="button" data-icon="home"><span>回到首頁</span></button>
+              </div>
+              <div class="ovbtns" id="ov-result-extra"></div>
+            </div>
+          </div>
+
+          <div class="overlay" id="ov-closed" hidden>
+            <div class="ovcard slim" role="alertdialog" aria-labelledby="ov-closed-title" aria-describedby="ov-closed-note">
+              <h3 id="ov-closed-title">房間已結束</h3>
+              <p class="ovnote" id="ov-closed-note">房間裡已經沒有玩家了，邀請連結也失效了。</p>
+              <div class="ovbtns">
+                <button class="tk tk-lg" data-tone="gold" id="b-closed-lobby" type="button" data-icon="users"><span>回到大廳</span></button>
+                <button class="tk" data-tone="paper" id="b-closed-home" type="button" data-icon="home"><span>回到首頁</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="countdown" id="countdown" hidden aria-live="assertive"></div>
+        </div>
+      </div>
+
+      <!-- 窄版才出現的左側浮動開關 -->
+      <div class="side-fab" id="side-fab">
+        <button class="tk tk-icon" data-tone="paper" id="b-open-sum" type="button" aria-label="打開操作摘要" data-icon="list"></button>
+        <button class="tk tk-icon" data-tone="paper" id="b-open-chat" type="button" aria-label="打開聊天室" data-icon="chat"><span class="unread" id="chat-unread3" hidden>0</span></button>
+      </div>
+      <div class="side-mask" id="side-mask" hidden></div>
+    </div>
+  </section>
+
+  <!-- ============================== 玩法與圖鑑 ============================== -->
+  <section class="screen" id="s-help" aria-label="玩法與圖鑑">
+    <div class="sa sa-full"><div class="sa-view" tabindex="0" aria-label="玩法與圖鑑內容">
+      <div class="page">
+        <div class="panel wide">
+          <div class="panel-head">
+            <button class="tk tk-sm" data-tone="paper" data-back="s-home" type="button" data-icon="back"><span>返回</span></button>
+            <h2 tabindex="-1">玩法與圖鑑</h2>
+          </div>
+
+          <ol class="steps">
+            <li><b>射破要射的氣球。</b>氣球從攤位下面往上飄，點它（或用鍵盤移動準星按空白鍵）就會射出一發飛鏢，射破就加分。</li>
+            <li><b>放過不能射的。</b>白鴿氣球、祈福天燈和炸彈氣球射到會<b>扣分</b>，看清楚再出手。</li>
+            <li><b>一局 60 秒，分三階段。</b>暖場 → 加速 → 狂歡，氣球愈來愈多、愈飄愈快，稀有的高分氣球也比較晚才出現。局長可以選 60／75／90 秒。</li>
+            <li><b>連擊有加成。</b>連續射中要射的氣球，每 5 連擊 +10%，最多 +50%；誤射禁射氣球連擊歸零。</li>
+            <li><b>線上共用同一片天空。</b>最多 5 個人看同一批氣球，同一顆氣球<b>誰先射到誰得分</b>，慢一步就沒了。</li>
+            <li><b>射空不扣分。</b>只是浪費時間，也會拉低命中率。</li>
+          </ol>
+          <div class="panel-foot start"><button class="tk" data-tone="teal" id="b-help-tutorial" type="button" data-icon="book"><span>開啟互動教學</span></button></div>
+
+          <h3 class="lbl">要射 — 射破加分</h3>
+          <div class="dex" id="dex-pop"></div>
+          <h3 class="lbl">不能射 — 射到扣分</h3>
+          <div class="dex" id="dex-avoid"></div>
+
+          <h3 class="lbl">操作方式</h3>
+          <ul class="plain">
+            <li><b>觸控／滑鼠：</b>直接點氣球，按下去就發射，不用等放開。點到空白處是射空。</li>
+            <li><b>鍵盤：</b>在射擊場按 <kbd class="key">←</kbd><kbd class="key">↑</kbd><kbd class="key">↓</kbd><kbd class="key">→</kbd> 移動準星，按 <kbd class="key">Space</kbd> 或 <kbd class="key">Enter</kbd> 發射。</li>
+            <li><b>暫停：</b>單機可以按上方的暫停鈕，或按 <kbd class="key">P</kbd>。</li>
+            <li><b>螢幕閱讀器：</b>射中、誤射與飄走的事件會用文字唸出來。</li>
+          </ul>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============================== 我的戰績 ============================== -->
+  <section class="screen" id="s-stats" aria-label="我的戰績">
+    <div class="sa sa-full"><div class="sa-view" tabindex="0" aria-label="我的戰績內容">
+      <div class="page">
+        <div class="panel">
+          <div class="panel-head">
+            <button class="tk tk-sm" data-tone="paper" data-back="s-home" type="button" data-icon="back"><span>返回</span></button>
+            <h2 tabindex="-1">我的戰績</h2>
+          </div>
+          <div class="statgrid" id="stat-grid"></div>
+          <p class="note">戰績只存在這台裝置的瀏覽器裡，沒有上傳到任何伺服器；換裝置或清掉瀏覽器資料就會歸零。</p>
+          <div class="panel-foot">
+            <button class="tk tk-sm" data-tone="paper" id="b-stats-reset" type="button"><span>清除本機戰績</span></button>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============================== 設定彈窗 ============================== -->
+  <div class="modal" id="settings-modal" hidden>
+    <div class="modal-mask" data-close-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-head">
+        <h3 id="settings-title">遊戲設定</h3>
+        <button class="tk tk-icon tk-sm" data-tone="paper" id="b-settings-close" type="button" aria-label="關閉設定" data-icon="close"></button>
+      </div>
+      <div class="sa sa-modal"><div class="sa-view" tabindex="0" aria-label="設定內容">
+        <div class="modal-body">
+          <div class="setrow"><span class="setlbl" id="lbl-music">背景音樂</span>
+            <button class="sw" id="set-music" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-music"><span class="sw-knob"></span></button></div>
+          <div class="setrow"><span class="setlbl" id="lbl-music-vol">音樂音量</span>
+            <div class="sl" id="set-music-vol" role="slider" tabindex="0" aria-labelledby="lbl-music-vol" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60"><span class="sl-fill"></span><span class="sl-thumb"></span></div></div>
+          <div class="setrow"><span class="setlbl" id="lbl-sfx">遊戲音效</span>
+            <button class="sw" id="set-sfx" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-sfx"><span class="sw-knob"></span></button></div>
+          <div class="setrow"><span class="setlbl" id="lbl-sfx-vol">音效音量</span>
+            <div class="sl" id="set-sfx-vol" role="slider" tabindex="0" aria-labelledby="lbl-sfx-vol" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span class="sl-fill"></span><span class="sl-thumb"></span></div></div>
+          <div class="setrow"><span class="setlbl" id="lbl-chatcue">聊天提示音</span>
+            <button class="sw" id="set-chatcue" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-chatcue"><span class="sw-knob"></span></button></div>
+          <hr class="sep">
+          <div class="setrow"><span class="setlbl" id="lbl-haptic">震動回饋<small>手機／平板才有作用</small></span>
+            <button class="sw" id="set-haptic" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-haptic"><span class="sw-knob"></span></button></div>
+          <div class="setrow"><span class="setlbl" id="lbl-motion">減少動態<small>關掉晃動與粒子特效</small></span>
+            <button class="sw" id="set-motion" type="button" role="switch" aria-checked="false" aria-labelledby="lbl-motion"><span class="sw-knob"></span></button></div>
+          <div class="setrow"><span class="setlbl" id="lbl-mark">分數標籤放大<small>色彩辨識不便時比較好分辨要射與不能射</small></span>
+            <button class="sw" id="set-mark" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-mark"><span class="sw-knob"></span></button></div>
+          <div class="setrow"><span class="setlbl" id="lbl-cursor">準星滑鼠游標<small>對局時把滑鼠游標換成準星，觸控裝置不受影響</small></span>
+            <button class="sw" id="set-cursor" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-cursor"><span class="sw-knob"></span></button></div>
+          <p class="setinfo" id="set-audio-note"></p>
+          <button class="tk tk-sm" data-tone="teal" id="b-settings-tutorial" type="button" data-icon="book"><span>重看玩法教學</span></button>
+        </div>
+      </div></div>
+      <div class="modal-foot">
+        <button class="tk tk-sm" data-tone="paper" id="b-settings-reset" type="button"><span>恢復預設</span></button>
+        <button class="tk tk-sm" data-tone="gold" id="b-settings-ok" type="button"><span>完成</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== 玩法教學（純文字） ============================== -->
+  <div class="modal" id="tutorial-modal" hidden>
+    <div class="modal-mask" data-close-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="tut-title">
+      <div class="modal-head">
+        <h3 id="tut-title">玩法教學</h3>
+        <button class="tk tk-icon tk-sm" data-tone="paper" id="b-tut-close" type="button" aria-label="關閉教學" data-icon="close"></button>
+      </div>
+      <div class="sa sa-modal"><div class="sa-view" tabindex="0" aria-label="教學內容">
+        <div class="modal-body">
+          <p class="tut-step" id="tut-progress" aria-live="polite"></p>
+          <h4 class="tut-head" id="tut-head"></h4>
+          <p class="tut-text" id="tut-text"></p>
+        </div>
+      </div></div>
+      <div class="modal-foot">
+        <button class="tk tk-sm" data-tone="paper" id="b-tut-skip" type="button"><span>跳過</span></button>
+        <button class="tk tk-sm" data-tone="paper" id="b-tut-prev" type="button" data-icon="back"><span>上一步</span></button>
+        <button class="tk tk-sm" data-tone="gold" id="b-tut-next" type="button"><span>下一步</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== 確認彈窗 ============================== -->
+  <div class="modal" id="confirm-modal" hidden>
+    <div class="modal-mask" data-close-modal></div>
+    <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+      <div class="modal-head">
+        <h3 id="confirm-title">請確認</h3>
+        <button class="tk tk-icon tk-sm" data-tone="paper" id="b-confirm-close" type="button" aria-label="取消" data-icon="close"></button>
+      </div>
+      <div class="modal-body"><p class="confirm-message" id="confirm-message"></p></div>
+      <div class="modal-foot">
+        <button class="tk tk-sm" data-tone="paper" id="b-confirm-cancel" type="button"><span>取消</span></button>
+        <button class="tk tk-sm" data-tone="red" id="b-confirm-ok" type="button"><span>確定</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== 邀請彈窗 ============================== -->
+  <div class="modal" id="invite-modal" hidden>
+    <div class="modal-mask" data-close-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="invite-title">
+      <div class="modal-head">
+        <h3 id="invite-title">邀請朋友</h3>
+        <button class="tk tk-icon tk-sm" data-tone="paper" id="b-invite-close" type="button" aria-label="關閉" data-icon="close"></button>
+      </div>
+      <div class="sa sa-modal"><div class="sa-view" tabindex="0" aria-label="邀請內容">
+        <div class="modal-body">
+          <p class="setinfo">邀請連結會指定進來的身分，有使用次數與有效期限，也可以隨時撤銷。</p>
+          <div class="group"><span class="lbl2" id="lbl-inv-role">進來的身分</span><div class="seg wrap" id="inv-role" role="radiogroup" aria-labelledby="lbl-inv-role"></div></div>
+          <div class="group"><span class="lbl2" id="lbl-inv-ttl">有效期限</span><div class="seg" id="inv-ttl" role="radiogroup" aria-labelledby="lbl-inv-ttl"></div></div>
+          <div class="group"><span class="lbl2" id="lbl-inv-uses">可以用幾次</span><div class="seg" id="inv-uses" role="radiogroup" aria-labelledby="lbl-inv-uses"></div></div>
+          <button class="tk tk-sm" data-tone="gold" id="b-invite-make" type="button" data-icon="link"><span>產生並複製邀請連結</span></button>
+          <div class="invite-out" id="invite-out" hidden>
+            <input class="fld-in" id="invite-url" type="text" readonly aria-label="邀請連結">
+            <button class="tk tk-sm" data-tone="teal" id="b-invite-copy" type="button" data-icon="copy"><span>複製</span></button>
+            <button class="tk tk-sm" data-tone="sky" id="b-invite-share" type="button" hidden data-icon="share"><span>分享</span></button>
+          </div>
+          <h4 class="sum-h">目前有效的邀請</h4>
+          <div class="invitelist" id="invite-list"></div>
+        </div>
+      </div></div>
+      <div class="modal-foot">
+        <button class="tk tk-sm" data-tone="paper" id="b-invite-done" type="button"><span>關閉</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</div>
+
+<script src="js/keyboard.js"></script>
+<script src="js/config.js"></script>
+<script src="js/rng.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/art.js"></script>
+<script src="js/stage.js"></script>
+<script src="js/latency.js?v=20261015" data-skin="shoot-balloon"></script>
+<script src="js/online.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

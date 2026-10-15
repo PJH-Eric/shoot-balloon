@@ -1,0 +1,29 @@
+{
+  "name": "shoot-balloon",
+  "version": "1.0.0",
+  "description": "射氣球 - 夜市攤位風的限時搶分遊戲（氣球由下往上飄、射破加分、誤射白鴿/天燈/炸彈氣球扣分；單機四段 AI、最多 5 人共用天空先射先得分的線上對戰、觀戰、邀請連結、聊天室）",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/verify.js",
+    "test:online": "node scripts/online-check.js",
+    "test:browser": "node scripts/browser-check.js",
+    "shots": "node scripts/shots.js",
+    "verify": "node tests/verify.js && node scripts/online-check.js && node scripts/browser-check.js",
+    "inject": "node scripts/inject-server-url.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0",
+    "socket.io-client": "^4.8.1"
+  },
+  "license": "MIT",
+  "private": true
+}

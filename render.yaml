@@ -1,0 +1,33 @@
+# Render 藍圖：在 Render 選 "New > Blueprint"、指到這個 repo 就能一鍵部署。
+#
+# 免費方案的限制（設計時已經考慮進去）：
+#   - 支援 WebSocket（Socket.IO），但閒置約 15 分鐘會休眠，
+#     第一次連線要等十幾秒喚醒 —— 前端的 /health 檢查逾時放寬到 10 秒就是為了這個。
+#   - 檔案系統是暫時的，服務重啟就清空 —— 所以房間只存在記憶體，
+#     不寫任何檔案，重啟後房間消失是預期行為。
+#   - 有 CPU / 頻寬配額 —— 對局用 50ms tick + 事件推播（不是每幀送完整狀態），
+#     空房與打完很久的房間會自動回收。
+services:
+  - type: web
+    name: shoot-balloon
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # 允許連線的前端來源，逗號分隔。
+      # 前端和伺服器都在這個服務上時可以留 *；
+      # 若前端另外放在 GitHub Pages 之類的地方，請填那個網址。
+      - key: GAME_ALLOWED_ORIGIN
+        sync: false
+      # 新房間的預設一局長度（毫秒）。房主可以在房間裡改成 60／75／90 秒。
+      - key: ROUND_MS
+        value: "60000"
+      # 開賽倒數（毫秒）
+      - key: COUNTDOWN_MS
+        value: "3000"

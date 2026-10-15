@@ -1,0 +1,37 @@
+# 每次 push / PR 都跑一次驗證：規則單元測試 + 真的開伺服器打一場線上對戰。
+name: 測試
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: 規則與線上流程
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: 規則單元測試
+        run: node tests/verify.js
+      - name: 線上流程實測（開伺服器、多人搶射、觀戰、邀請、斷線重連、零玩家關房）
+        run: node scripts/online-check.js
+  browser:
+    name: 瀏覽器操作與版面
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: 瀏覽器操作檢查（自訂元件、設定彈窗、單機整局、線上多人）
+        run: node scripts/browser-check.js

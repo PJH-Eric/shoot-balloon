@@ -1,0 +1,14 @@
+node_modules/
+npm-debug.log*
+.env
+.env.local
+.env.*.local
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+.chrome-rwd-test/
+coverage/
+dist/
+screenshots/

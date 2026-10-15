@@ -1,0 +1,89 @@
+# 把「前端」自動佈署到 GitHub Pages。
+#
+# 伺服器（server.js）不會跑在 GitHub Pages 上 —— Pages 只能放靜態檔案。
+# 所以線上對戰的架構是：
+#     前端 GitHub Pages  ──（WebSocket / HTTPS）──>  伺服器 Render
+#
+# 要讓 Pages 上的前端知道伺服器在哪，有兩條路（優先序由高到低）：
+#   1. 網址參數：https://你的帳號.github.io/shoot-balloon/?server=https://xxx.onrender.com
+#   2. 建置注入：這個 workflow 會把 repo 變數 GAME_SERVER_URL 寫進 config.js（推薦）
+#
+# 設定方式：
+#   GitHub repo → Settings → Secrets and variables → Actions → Variables →
+#   New repository variable，名稱 GAME_SERVER_URL，值填 Render 給的網址，
+#   例如 https://shoot-balloon.onrender.com（結尾不要斜線）。
+#   另外記得在 Render 那邊把 GAME_ALLOWED_ORIGIN 設成
+#   https://你的帳號.github.io，否則瀏覽器會因為 CORS 擋掉連線。
+name: 佈署前端到 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "遊戲伺服器網址（留空就用 repo 變數 GAME_SERVER_URL）"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時只跑一個佈署。不取消跑到一半的那一次 —— Pages 佈署被砍在中間會留下半套的站台，
+# 寧可排隊等它跑完。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: 建置前端
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 規則單元測試（沒過就不佈署）
+        run: node tests/verify.js
+
+      - name: 把 server URL 注入 config.js
+        env:
+          GAME_SERVER_URL: ${{ inputs.server_url || vars.GAME_SERVER_URL }}
+        run: |
+          if [ -z "$GAME_SERVER_URL" ]; then
+            echo "::warning::沒有設定 GAME_SERVER_URL；佈署出去的頁面預設只能玩單機，請設定變數後重新佈署。"
+            node scripts/inject-server-url.js --clear
+          else
+            node scripts/inject-server-url.js "$GAME_SERVER_URL"
+          fi
+
+      - name: 準備靜態檔案
+        run: |
+          touch public/.nojekyll
+          cp public/index.html public/404.html   # 直接開子路徑時也回到遊戲
+
+      # enablement: true 讓這一步在 repo 還沒開 Pages 時自己去開（並把來源設成
+      # GitHub Actions），省掉手動進 Settings 的步驟。沒開就跑會直接 404 失敗。
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    name: 佈署
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

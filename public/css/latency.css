@@ -1,0 +1,109 @@
+/* 連線延遲徽章：由 latency.js 擺在設定鈕左邊或下方的空位（.is-docked），
+   有頂端狀態列的遊戲則直接放進狀態列（.is-inline）；都不適用時退回右上角 */
+#network-latency {
+  --meter-surface: #fffdf8;
+  --meter-ink: #4a3b55;
+  --meter-edge: #765a62;
+  --meter-dot: #958d91;
+  --meter-tint: #786f79;
+  position: fixed;
+  z-index: 40;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 20px;
+  padding: 0 7px 0 6px;
+  border: 1.5px solid var(--meter-edge);
+  border-radius: 999px;
+  color: var(--meter-ink);
+  background: var(--meter-surface);
+  box-shadow: 0 1px 0 #ffffffb3 inset, 0 2px 5px #2e233026;
+  font: 800 11px/1 "Yuanti TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  transition: border-color .25s ease, background-color .25s ease;
+}
+#network-latency.is-docked { right: auto; }
+#network-latency.is-compact { padding: 0 6px 0 5px; }
+#network-latency.is-compact .latency-meter__unit { display: none; }
+#network-latency.is-inline { position: static; z-index: auto; flex: none; align-self: center; height: 22px; box-shadow: 0 1px 0 #ffffffb3 inset; }
+/* 爬樓梯：橫向是左側資訊欄的一列，直向是上方薄狀態列裡的一顆（省掉單位才塞得下） */
+#side #network-latency.is-inline { align-self: flex-start; }
+@media (orientation: portrait) {
+  #side #network-latency.is-inline { align-self: center; padding: 0 6px 0 5px; }
+  #side #network-latency.is-inline .latency-meter__unit { display: none; }
+  /* 薄狀態列放不下第五樣：世界名稱優先序最低（見 style.css 註解），線上對局顯示延遲時先收起來 */
+  #side:has(> #network-latency.is-inline:not([hidden])) #side-world { display: none; }
+}
+#network-latency[hidden] { display: none; }
+#network-latency .latency-meter__icon { display: none; }
+
+#network-latency .latency-meter__light {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--meter-dot);
+}
+#network-latency.is-good .latency-meter__light::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: var(--meter-dot);
+  opacity: .45;
+  animation: latency-pulse 2.5s ease-out infinite;
+}
+#network-latency .latency-meter__value {
+  color: var(--meter-tint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+}
+#network-latency .latency-meter__unit {
+  margin-left: -2px;
+  opacity: .6;
+  font-size: 8.5px;
+  font-weight: 900;
+}
+
+#network-latency.is-good { --meter-dot: #34b45b; --meter-tint: #23763f; }
+#network-latency.is-warn { --meter-dot: #f0a126; --meter-tint: #a35a07; }
+#network-latency.is-bad  { --meter-dot: #e04444; --meter-tint: #b8302f; border-color: #e04444; }
+
+@keyframes latency-pulse {
+  0% { transform: scale(.6); opacity: .5; }
+  70%, 100% { transform: scale(1.9); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #network-latency.is-good .latency-meter__light::after { animation: none; display: none; }
+}
+
+/* 各遊戲配色：只換底色、文字與框線，外型一致 */
+#network-latency[data-skin="cat-dog-war"] { --meter-surface: #fff4f1; --meter-ink: #533852; --meter-edge: #d990a0; }
+#network-latency[data-skin="caterpillar-race"] { --meter-surface: #f3fadf; --meter-ink: #31532c; --meter-edge: #7ea364; }
+#network-latency[data-skin="draw-guess"] { --meter-surface: #fffdf8; --meter-ink: #4a3b55; --meter-edge: #887496; }
+#network-latency[data-skin="flip-match"] { --meter-surface: #eefbf7; --meter-ink: #493e36; --meter-edge: #6e9285; }
+#network-latency[data-skin="fruit-link"] { --meter-surface: #fffaea; --meter-ink: #493e36; --meter-edge: #c49456; }
+#network-latency[data-skin="heart-attack"] { --meter-surface: #fff5ef; --meter-ink: #52384c; --meter-edge: #bb7186; }
+#network-latency[data-skin="richman"] { --meter-surface: #fff8d6; --meter-ink: #68452b; --meter-edge: #aa8244; }
+#network-latency[data-skin="stair-kids"] { --meter-surface: #f5faeb; --meter-ink: #394b35; --meter-edge: #78935f; }
+#network-latency[data-skin="sudoku"] { --meter-surface: #fdfcff; --meter-ink: #433d55; --meter-edge: #9184ae; }
+#network-latency[data-skin="whack-a-mole"] { --meter-surface: #fff3e2; --meter-ink: #4a362b; --meter-edge: #9b7651; }
+/* 中國跳棋是深色介面，徽章跟著換成深底亮字 */
+#network-latency[data-skin="chinese-checkers"] { --meter-surface: #18233a; --meter-ink: #dfe6f3; --meter-edge: #3a4f74; --meter-tint: #a3aec2; box-shadow: none; }
+#network-latency[data-skin="chinese-checkers"].is-good { --meter-tint: #6edb92; }
+#network-latency[data-skin="chinese-checkers"].is-warn { --meter-tint: #ffc35c; }
+#network-latency[data-skin="chinese-checkers"].is-bad { --meter-tint: #ff8a8a; }
+
+#network-latency[data-skin="shoot-balloon"] { --meter-surface: #241B55; --meter-ink: #FFF1D6; --meter-edge: #1A1233; --meter-tint: #CFC8EE; box-shadow: 0 2px 0 #0006; }
+#network-latency[data-skin="shoot-balloon"].is-good { --meter-tint: #5BF0C8; }
+#network-latency[data-skin="shoot-balloon"].is-warn { --meter-tint: #FFB73D; }
+#network-latency[data-skin="shoot-balloon"].is-bad { --meter-tint: #FF6B57; }
+#network-latency[data-skin="shoot-balloon"] { height: 24px; font-size: 12px; }
+#network-latency[data-skin="shoot-balloon"] .latency-meter__unit { font-size: 11px; opacity: .8; }
