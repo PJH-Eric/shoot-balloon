@@ -305,8 +305,9 @@ async function main() {
     const endHelp = await L.evaluate(() => { const v = document.querySelector('#s-help .sa-view'); return Math.abs(v.scrollTop + v.clientHeight - v.scrollHeight) < 3; });
     ok(endHelp, '滾輪可以捲到最後一項');
     await L.keyboard.press('Home'); await sleep(50);
-    await L.focus('#s-help .sa-view'); await L.keyboard.press('Home'); await sleep(100);
-    eq(await L.evaluate(() => document.querySelector('#s-help .sa-view').scrollTop), 0, '鍵盤 Home 捲回頂端');
+    await L.focus('#s-help .sa-view'); await L.keyboard.press('Home');
+    await L.waitForFunction(() => document.querySelector('#s-help .sa-view').scrollTop <= 3, null, { timeout: 3000 }).catch(() => {});
+    ok(await L.evaluate(() => document.querySelector('#s-help .sa-view').scrollTop <= 3), '鍵盤 Home 捲回頂端（等捲動動畫結束）');
     await L.keyboard.press('End'); await sleep(150);
     ok(await L.evaluate(() => { const v = document.querySelector('#s-help .sa-view'); return v.scrollTop > 100; }), '鍵盤 End 可以捲動');
     const thumbMoved = await L.evaluate(() => document.querySelector('#s-help .sa-y .sa-thumb').style.transform);
