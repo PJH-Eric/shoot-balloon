@@ -230,7 +230,7 @@ kbd.key {
 
 /* ------------------------------------------------------------ 首頁 */
 .lobby-link {
-  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 6px;
+  position: fixed; top: calc(10px + var(--safe-t)); left: calc(10px + var(--safe-l)); z-index: 5; display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 14px 0 10px; background: var(--card); border: 3px solid var(--ink); border-radius: 6px; box-shadow: 0 4px 0 rgba(0, 0, 0, .45);
   color: var(--cream2); font-weight: 800; letter-spacing: .06em; text-decoration: none; font-size: 15px;
 }
 .lobby-link:hover { color: var(--gold); }
