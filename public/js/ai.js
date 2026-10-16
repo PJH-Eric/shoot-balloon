@@ -52,6 +52,8 @@
   var ORDER = ['rookie', 'easy', 'normal', 'hard'];
   var NAME_POOL = ['彈弓', '阿呆', '小咻', '鷹眼', '眼鏡', '嘟嘟', '快手', '老練'];
 
+  var NAME_COUNT = NAME_POOL.length;
+
   function levelOf(key) { return LEVELS[key] || LEVELS.normal; }
 
   function aiName(level, index) {
@@ -155,6 +157,7 @@
     ORDER: ORDER,
     levelOf: levelOf,
     aiName: aiName,
+    NAME_COUNT: NAME_COUNT,
     NAME_POOL: NAME_POOL,
     createBrain: createBrain
   };

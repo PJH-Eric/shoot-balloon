@@ -260,6 +260,7 @@
       name: String(p.name || ('玩家' + (index + 1))),
       color: p.color || PLAYER_COLORS[index % PLAYER_COLORS.length],
       ai: p.ai || null,
+      nameIdx: p.nameIdx === undefined ? null : p.nameIdx,   // 電腦對手的名字編號（前端依語言換名字）
       score: 0,
       hits: 0,          // 射中要射的氣球次數
       badHits: 0,       // 誤射禁射氣球次數
@@ -412,6 +413,9 @@
     return events;
   }
 
+  /** 失敗結果：error 是中文原文，key 讓前端翻成目前語言（字典 srv.r.*） */
+  function err(error, code, key) { return { ok: false, error: error, code: code, key: key }; }
+
   /**
    * 射一發。共用天空先射先得分：同一顆氣球誰先送到伺服器誰得分。
    * @param {string} playerId
@@ -419,9 +423,9 @@
    */
   function shoot(state, playerId, aim, now) {
     var p = state.players[String(playerId)];
-    if (!p) return { ok: false, error: '你不在這一局裡（可能是觀戰中）。', code: 'notplayer' };
+    if (!p) return err('你不在這一局裡（可能是觀戰中）。', 'notplayer', 'srv.r.notNotPlayer');
     if (phaseOf(state, now) !== 'playing') {
-      return { ok: false, error: '現在還不能射擊。', code: 'phase' };
+      return err('現在還不能射擊。', 'phase', 'srv.r.noShoot');
     }
 
     p.shots += 1;
@@ -533,7 +537,7 @@
       var p = list[i];
       if (prevScore === null || p.score !== prevScore) { rank = i + 1; prevScore = p.score; }
       out.push({
-        rank: rank, id: p.id, name: p.name, color: p.color, ai: p.ai,
+        rank: rank, id: p.id, name: p.name, color: p.color, ai: p.ai, nameIdx: p.nameIdx,
         score: p.score, hits: p.hits, badHits: p.badHits, shots: p.shots,
         combo: p.combo, bestCombo: p.bestCombo, accuracy: accuracyOf(p),
         buffUntil: p.buffUntil, byType: p.byType

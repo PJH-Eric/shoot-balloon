@@ -42,13 +42,13 @@
     try {
       parsed = new URL(raw);
     } catch (e) {
-      return { url: null, source: source, status: 'invalid', error: '不是合法的絕對網址：' + raw };
+      return { url: null, source: source, status: 'invalid', error: (globalThis.I18N ? globalThis.I18N.t("text.213") : "不是合法的絕對網址：") + raw, errorKey: 'srv.cfg.badUrl', errorParams: { x: raw } };
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return { url: null, source: source, status: 'invalid', error: '只接受 http 或 https：' + raw };
+      return { url: null, source: source, status: 'invalid', error: (globalThis.I18N ? globalThis.I18N.t("text.212") : "只接受 http 或 https：") + raw, errorKey: 'srv.cfg.proto', errorParams: { x: raw } };
     }
     if (pageProtocol === 'https:' && parsed.protocol === 'http:') {
-      return { url: null, source: source, status: 'invalid', error: 'https 頁面不能連 http 伺服器（混合內容會被瀏覽器擋掉）：' + raw };
+      return { url: null, source: source, status: 'invalid', error: (globalThis.I18N ? globalThis.I18N.t("text.211") : "https 頁面不能連 http 伺服器（混合內容會被瀏覽器擋掉）：") + raw, errorKey: 'srv.cfg.mixed', errorParams: { x: raw } };
     }
     return {
       url: parsed.origin + parsed.pathname.replace(/\/+$/, ''),
@@ -68,7 +68,7 @@
   var r = resolve(INJECTED, queryParam(loc.search, 'server'), loc.protocol, loc.origin);
 
   if (r.status === 'invalid' && typeof console !== 'undefined' && console.warn) {
-    console.warn('[config] server URL 設定有問題，線上功能會停用：' + r.error);
+    console.warn((globalThis.I18N ? globalThis.I18N.t("text.210") : "[config] server URL 設定有問題，線上功能會停用：") + r.error);
   }
 
   var Config = {
@@ -78,6 +78,9 @@
     /* 'none' ｜ 'same-origin' ｜ 'injected' ｜ 'query' */
     source: r.source,
     error: r.error,
+    /* 錯誤的字典 key 與參數：畫面上用 I18N.t 翻成目前語言（error 保留中文原文給主控台與測試） */
+    errorKey: r.errorKey || null,
+    errorParams: r.errorParams || null,
 
     isOnlineEnabled: function () { return r.status === 'ok'; },
 
@@ -112,11 +115,12 @@
 
     /** 線上連線狀態列使用的一行說明 */
     describe: function () {
-      if (Config.status === 'invalid') return '設定有誤（線上已停用）';
-      if (!Config.serverUrl) return '未設定（只能玩單機）';
+      var tr = function (key, zh) { return (w.I18N && w.I18N.t) ? w.I18N.t(key, null, zh) : zh; };
+      if (Config.status === 'invalid') return tr('cfg.invalid', (globalThis.I18N ? globalThis.I18N.t("text.209") : "設定有誤（線上已停用）"));
+      if (!Config.serverUrl) return tr('cfg.unset', (globalThis.I18N ? globalThis.I18N.t("text.208") : "未設定（只能玩單機）"));
       var host = Config.serverUrl.replace(/^https?:\/\//, '');
-      var tag = Config.source === 'query' ? '（網址參數）'
-        : (Config.source === 'injected' ? '（建置注入）' : '（同源）');
+      var tag = Config.source === 'query' ? tr('cfg.query', (globalThis.I18N ? globalThis.I18N.t("text.207") : "（網址參數）"))
+        : (Config.source === 'injected' ? tr('cfg.injected', (globalThis.I18N ? globalThis.I18N.t("text.206") : "（建置注入）")) : tr('cfg.same', (globalThis.I18N ? globalThis.I18N.t("text.205") : "（同源）")));
       return host + tag;
     },
 

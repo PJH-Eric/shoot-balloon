@@ -6,12 +6,13 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/verify.js",
+    "test": "node tests/localization.js && node tests/verify.js",
     "test:online": "node scripts/online-check.js",
     "test:browser": "node scripts/browser-check.js",
     "shots": "node scripts/shots.js",
     "verify": "node tests/verify.js && node scripts/online-check.js && node scripts/browser-check.js",
-    "inject": "node scripts/inject-server-url.js"
+    "inject": "node scripts/inject-server-url.js",
+    "test:localization": "node tests/localization.js"
   },
   "engines": {
     "node": ">=18"

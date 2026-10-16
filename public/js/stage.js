@@ -254,7 +254,7 @@
       text = (ev.gain >= 0 ? '+' : '') + ev.gain;
       if (ev.buffed) text += ' ×2';
       else if (ev.multiplier > 1.001) text += ' ×' + ev.multiplier.toFixed(1);
-      if (!ev.killed) text = '咚！' + text;
+      if (!ev.killed) text = (globalThis.I18N ? globalThis.I18N.t("text.232") : "咚！") + text;
       if (o.mine && ev.side === 'avoid' && !reduceMotion && field) {
         field.classList.remove('shake'); void field.offsetWidth; field.classList.add('shake');
         setTimeout(function () { field.classList.remove('shake'); }, 320);
@@ -265,7 +265,7 @@
       py = (ev.y !== null && ev.y !== undefined && isFinite(ev.y)) ? ev.y * H : null;
       if (px === null || py === null) return;
       cls += ' miss';
-      text = ev.late ? '慢了一步' : '射空';
+      text = ev.late ? (globalThis.I18N ? globalThis.I18N.t("text.231") : "慢了一步") : (globalThis.I18N ? globalThis.I18N.t("text.230") : "射空");
       var ring = w.document.createElement('i');
       ring.className = 'ring';
       ring.style.left = px + 'px'; ring.style.top = py + 'px';

@@ -74,7 +74,17 @@
         bestRect = r;
       }
     });
-    return best ? { el: best, rect: bestRect } : null;
+    if (!best) return null;
+    // 設定鈕左邊緊鄰語言切換鈕時，把它算進錨點，徽章才不會壓在切換鈕上
+    const lang = document.querySelector('.lang-toggle');
+    if (lang && isShown(lang)) {
+      const lr = lang.getBoundingClientRect();
+      if (Math.abs(lr.top - bestRect.top) < 24 && lr.right <= bestRect.left + 2 && bestRect.left - lr.right < 24) {
+        bestRect = { left: lr.left, right: bestRect.right, top: Math.min(lr.top, bestRect.top), bottom: Math.max(lr.bottom, bestRect.bottom),
+          width: bestRect.right - lr.left, height: Math.max(lr.bottom, bestRect.bottom) - Math.min(lr.top, bestRect.top) };
+      }
+    }
+    return { el: best, rect: bestRect };
   }
 
   // 沿用設定鈕所在的最外層堆疊層級：徽章與設定鈕同層，開彈窗時一樣會被蓋住
@@ -201,8 +211,9 @@
     const quality = ms === null ? 'unknown' : ms <= 30 ? 'good' : ms < 100 ? 'warn' : 'bad';
     el.classList.add('is-' + quality);
     el.querySelector('.latency-meter__value').textContent = ms === null ? '--' : String(ms);
-    el.setAttribute('aria-label', ms === null ? '連線延遲，等待回應' : '連線延遲 ' + ms + ' 毫秒');
-    el.title = ms === null ? '連線延遲：等待回應' : '連線延遲：' + ms + ' ms';
+    const tr = function (key, params, zh) { return (root.I18N && root.I18N.t) ? root.I18N.t(key, params, zh) : zh; };
+    el.setAttribute('aria-label', ms === null ? tr('latency.waitAria', null, (globalThis.I18N ? globalThis.I18N.t("text.218") : "連線延遲，等待回應")) : tr('latency.aria', { ms: ms }, (globalThis.I18N ? globalThis.I18N.t("text.217") : "連線延遲 ") + ms + (globalThis.I18N ? globalThis.I18N.t("text.216") : " 毫秒")));
+    el.title = ms === null ? tr('latency.waitTitle', null, (globalThis.I18N ? globalThis.I18N.t("text.215") : "連線延遲：等待回應")) : tr('latency.title', { ms: ms }, (globalThis.I18N ? globalThis.I18N.t("text.214") : "連線延遲：") + ms + ' ms');
     dock();
   }
 
@@ -261,6 +272,8 @@
   }
 
   root.addEventListener('resize', function () { dock(true); });
+  // 切換語言後重新產生 aria-label／title，並重新量測位置（語言切換鈕寬度可能不同）
+  document.addEventListener('i18n:change', function () { render(); dock(true); });
 
   root.NetworkLatency = { setActive, setProbe, report, bindSocketIo };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureMeter, { once: true });

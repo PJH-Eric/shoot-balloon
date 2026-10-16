@@ -34,10 +34,22 @@
     };
   }
 
-  function setStatus(next, message) {
+  /** 翻譯：字典載入後用目前語言，否則退回中文原文 */
+  function T(key, params, zh) {
+    return (w.I18N && w.I18N.t) ? w.I18N.t(key, params, zh) : zh;
+  }
+
+  /** key／params 讓畫面在切換語言時能重新翻譯目前的狀態文字 */
+  function setStatus(next, message, key, params) {
     status = next;
     lastError = message || '';
-    emitLocal('status', { status: status, message: lastError });
+    emitLocal('status', { status: status, message: lastError, key: key || null, params: params || null });
+  }
+
+  function fail(key, params, zh) {
+    var e = new Error(T(key, params, zh));
+    e.i18nKey = key; e.i18nParams = params || null;
+    return e;
   }
 
   /** socket.io 用戶端腳本是由伺服器提供的，所以要從 server URL 載入 */
@@ -45,7 +57,7 @@
     if (w.io) return Promise.resolve();
     if (loading) return loading;
     var src = Config.url('/socket.io/socket.io.js');
-    if (!src) return Promise.reject(new Error('沒有設定遊戲伺服器位址。'));
+    if (!src) return Promise.reject(fail('srv.on.noServer', null, (globalThis.I18N ? globalThis.I18N.t("text.229") : "沒有設定遊戲伺服器位址。")));
     setStatus('loading');
     loading = new Promise(function (resolve, reject) {
       var s = document.createElement('script');
@@ -53,7 +65,7 @@
       s.async = true;
       s.onload = function () { resolve(); };
       s.onerror = function () {
-        reject(new Error('連不到遊戲伺服器（' + Config.describe() + '），請確認伺服器有開著。'));
+        reject(fail('srv.on.unreachable', { where: Config.describe() }, (globalThis.I18N ? globalThis.I18N.t("text.228") : "連不到遊戲伺服器（") + Config.describe() + (globalThis.I18N ? globalThis.I18N.t("text.227") : "），請確認伺服器有開著。")));
       };
       document.head.appendChild(s);
     });
@@ -66,8 +78,10 @@
    */
   function connect(identity) {
     if (!Config.isOnlineEnabled()) {
-      setStatus('offline', Config.error || '目前沒有可用的遊戲伺服器，只能玩單機。');
-      return Promise.reject(new Error(lastError));
+      var offKey = Config.errorKey || 'srv.on.localOnly';
+      var offParams = Config.errorKey ? Config.errorParams : null;
+      setStatus('offline', Config.error || (globalThis.I18N ? globalThis.I18N.t("text.226") : "目前沒有可用的遊戲伺服器，只能玩單機。"), offKey, offParams);
+      return Promise.reject(fail(offKey, offParams, lastError));
     }
     if (socket && socket.connected) return Promise.resolve(socket);
 
@@ -89,10 +103,11 @@
         emitLocal('reconnected', {});
       });
       socket.on('disconnect', function (reason) {
-        setStatus('connecting', '連線中斷（' + reason + '），正在重試…');
+        setStatus('connecting', (globalThis.I18N ? globalThis.I18N.t("text.225") : "連線中斷（") + reason + (globalThis.I18N ? globalThis.I18N.t("text.224") : "），正在重試…"), 'srv.on.dropped', { reason: reason });
       });
       socket.on('connect_error', function (err) {
-        setStatus('error', '連不上伺服器：' + (err && err.message ? err.message : '未知錯誤'));
+        var why = err && err.message;
+        setStatus('error', (globalThis.I18N ? globalThis.I18N.t("text.223") : "連不上伺服器：") + (why || (globalThis.I18N ? globalThis.I18N.t("text.222") : "未知錯誤")), 'srv.on.connectErr', { msg: why || T('srv.on.unknown', null, (globalThis.I18N ? globalThis.I18N.t("text.222") : "未知錯誤")) });
       });
 
       ['lobby:rooms', 'room:sync', 'room:events', 'room:chat', 'room:error', 'room:closed', 'room:left']
@@ -102,7 +117,7 @@
 
       return waitHello(identity);
     }).catch(function (err) {
-      setStatus('error', err.message || String(err));
+      setStatus('error', err.message || String(err), err.i18nKey || null, err.i18nParams || null);
       throw err;
     });
   }
@@ -118,7 +133,7 @@
       var timer = setTimeout(function () {
         if (done) return;
         done = true;
-        reject(new Error('伺服器沒有回應（免費方案冷啟動可能要十幾秒，請再試一次）。'));
+        reject(fail('srv.on.timeout', null, (globalThis.I18N ? globalThis.I18N.t("text.221") : "伺服器沒有回應（免費方案冷啟動可能要十幾秒，請再試一次）。")));
       }, 15000);
       var finish = function () {
         if (done) return;
@@ -131,7 +146,7 @@
             emitLocal('hello', res);        /* 帶 serverTime，app.js 用來校時 */
             resolve(socket);
           }
-          else reject(new Error('伺服器拒絕連線。'));
+          else reject(fail('srv.on.refused', null, (globalThis.I18N ? globalThis.I18N.t("text.220") : "伺服器拒絕連線。")));
         });
       };
       if (socket.connected) finish();
@@ -141,7 +156,7 @@
 
   function send(evt, payload, ack) {
     if (!socket || !socket.connected) {
-      emitLocal('room:error', { message: '目前沒有連線，動作沒有送出去。請等重新連線後再試。', code: 'offline' });
+      emitLocal('room:error', { message: (globalThis.I18N ? globalThis.I18N.t("text.219") : "目前沒有連線，動作沒有送出去。請等重新連線後再試。"), code: 'offline', key: 'srv.on.notSent' });
       return false;
     }
     if (ack) socket.emit(evt, payload || {}, ack);
