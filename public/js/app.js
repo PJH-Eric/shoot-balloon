@@ -297,6 +297,7 @@
       roundMs: Rules.roundMsOf(settings.roundSec) });
     S.solo.rng = RNG.createRng('spawn:solo:' + seed);
     S.match = Rules.snapshot(S.solo.state, now);
+    GameAnalytics.start({ mode: 'solo', difficulty: level, players: roster.length });
     S.lastStage = 0; S.warned = false;
 
     enterGameScreen();
@@ -710,6 +711,7 @@
     $('ov-trophy').innerHTML = Art.trophy();
     var champs = m.standings.filter(function (p) { return p.rank === 1; });
     var iWon = champs.some(function (p) { return p.id === me; });
+    GameAnalytics.end({ result: m.draw ? 'draw' : (iWon ? 'win' : 'lose') });
     $('ov-result-title').textContent = m.draw
       ? (globalThis.I18N ? globalThis.I18N.t("text.119") : "平手！") + champs.map(function (p) { return playerName(p); }).join('、') + (globalThis.I18N ? globalThis.I18N.t("text.118") : " 同分")
       : (iWon ? (globalThis.I18N ? globalThis.I18N.t("text.117") : "你贏了！") : (champs[0] ? champs[0].name + (globalThis.I18N ? globalThis.I18N.t("text.116") : " 獲勝") : (globalThis.I18N ? globalThis.I18N.t("text.115") : "時間到")));
@@ -973,6 +975,10 @@
   function onSync(view) {
     /* 已離開房間／房間已關閉時，路上還沒到的同步包要丟掉，不然會被拉回對戰畫面 */
     if (S.mode !== 'online' || S.closed) return;
+    if (view.match && view.phase !== 'over') GameAnalytics.sync(view.phase, view.code + '|' + view.match.seed, {
+      mode: 'online', difficulty: view.pace, players: view.match.players.length,
+      spectator: !view.you || view.you.role !== 'player'
+    });
     var wasPhase = S.view ? S.view.phase : null;
     S.view = view;
     if (w.NetworkLatency) w.NetworkLatency.setActive(S.screen === 's-game' && view.phase === 'playing');
