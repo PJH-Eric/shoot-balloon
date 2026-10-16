@@ -362,6 +362,23 @@ ok(avg.rookie.acc < avg.hard.acc, '困難命中率比新手高', 'rookie=' + avg
 ok(avg.hard.shots > avg.rookie.shots, '困難出手比新手快（出手次數較多）');
 console.log('   各難度平均（60 秒、單獨射）：' + AI.ORDER.map((k) => AI.levelOf(k).label + ' ' + Math.round(avg[k].score)).join('／'));
 eq(AI.levelOf('???').key, 'normal', '不認得的 AI 難度回到普通');
+for (const level of AI.ORDER) {
+  const st = fresh([{ id: 'a', name: 'A', ai: level }]);
+  const b = addBalloon(st, 'red', T0);
+  const brain = AI.createBrain(level, 'visibility:' + level);
+  const visibleAt = T0 + b.upMs * (Rules.Y_START - 0.85) / (Rules.Y_START - Rules.Y_END);
+  let firstShot = null;
+  for (let now = T0; now < b.expireAt; now += 20) {
+    if (brain.step(Rules.snapshot(st, now), now)) { firstShot = now; break; }
+  }
+  ok(firstShot !== null && firstShot >= visibleAt + 450,
+    level + '：氣球進入舞台安全區後至少留 450ms 反應時間', 'delay=' + Math.round(firstShot - visibleAt));
+
+  const lateBrain = AI.createBrain(level, 'late:' + level);
+  const lateAt = T0 + 3500;
+  eq(lateBrain.step(Rules.snapshot(st, lateAt), lateAt), null,
+    level + '：第一次看到已飛出的氣球仍須等待反應時間');
+}
 {
   /* 同一個種子 AI 行為可重現；AI 不會對還沒冒出／已被射掉的氣球出手 */
   const a = aiRun('normal', 'REPLAY'), b = aiRun('normal', 'REPLAY');

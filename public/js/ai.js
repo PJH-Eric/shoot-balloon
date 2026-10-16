@@ -25,25 +25,25 @@
   var LEVELS = {
     rookie: {
       key: 'rookie', label: '超級新手',
-      reactionMs: 1100, reactionJitter: 380, shotMs: 1250, shotJitter: 380,
+      reactionMs: 1600, reactionJitter: 380, shotMs: 1500, shotJitter: 380,
       badMistake: 0.48, whiff: 0.36, valueBias: 0.05, moveMs: 260,
       blurb: '剛學會拿彈弓，慢吞吞又常常射錯，陪第一次玩的人剛剛好。'
     },
     easy: {
       key: 'easy', label: '簡單',
-      reactionMs: 740, reactionJitter: 260, shotMs: 860, shotJitter: 260,
+      reactionMs: 1100, reactionJitter: 260, shotMs: 1050, shotJitter: 260,
       badMistake: 0.36, whiff: 0.26, valueBias: 0.15, moveMs: 190,
       blurb: '反應慢、常常誤射禁射氣球，適合小朋友和第一次玩。'
     },
     normal: {
       key: 'normal', label: '普通',
-      reactionMs: 500, reactionJitter: 170, shotMs: 620, shotJitter: 170,
+      reactionMs: 800, reactionJitter: 170, shotMs: 780, shotJitter: 170,
       badMistake: 0.18, whiff: 0.13, valueBias: 0.6, moveMs: 130,
       blurb: '手腳算快，會挑分數高的射，偶爾會失手。'
     },
     hard: {
       key: 'hard', label: '困難',
-      reactionMs: 340, reactionJitter: 110, shotMs: 470, shotJitter: 110,
+      reactionMs: 600, reactionJitter: 110, shotMs: 600, shotJitter: 110,
       badMistake: 0.07, whiff: 0.07, valueBias: 1, moveMs: 90,
       blurb: '幾乎不誤射，專挑金色與巨無霸氣球，會跟你搶最後一發。'
     }
@@ -87,10 +87,10 @@
       for (i = 0; i < list.length; i++) {
         b = list[i];
         alive[b.id] = true;
-        if (noticed[b.id] === undefined) {
-          /* 氣球要先飄進舞台（y 由 1.1 到 1.0）才看得到，反應時間從那一刻起算 */
-          var visibleAt = b.spawnAt + b.upMs * (Rules.Y_START - 1.0) / (Rules.Y_START - Rules.Y_END);
-          noticed[b.id] = visibleAt + jitter(L.reactionMs, L.reactionJitter);
+        if (noticed[b.id] === undefined && Rules.balloonPos(b, now).y <= 0.85) {
+          /* 實際看見氣球進入舞台安全區才開始反應，不以出生時間預算。
+           * 線上快照延遲或恢復遊戲時，也不能跳過看見後的等待時間。 */
+          noticed[b.id] = now + jitter(L.reactionMs, L.reactionJitter);
         }
       }
       for (var id in noticed) if (!alive[id]) delete noticed[id];
@@ -101,10 +101,10 @@
       var seen = [];
       for (i = 0; i < list.length; i++) {
         b = list[i];
-        if (now < noticed[b.id]) continue;
+        if (noticed[b.id] === undefined || now < noticed[b.id]) continue;
         if (now > b.expireAt - 160) continue;
         var p = Rules.balloonPos(b, now);
-        if (p.y < 0.02 || p.y > 0.9) continue;
+        if (p.y < 0.02 || p.y > 0.85) continue;
         seen.push({ b: b, p: p });
       }
       if (!seen.length) return null;
