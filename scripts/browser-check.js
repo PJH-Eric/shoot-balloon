@@ -104,6 +104,7 @@ async function main() {
     ok(fabSize[0] >= 48 && fabSize[1] >= 48, '設定鈕至少 48×48', fabSize.join('×'));
     const fabIcon = await p.evaluate(() => !!document.querySelector('#b-settings svg.ic'));
     ok(fabIcon, '設定鈕有齒輪 SVG 圖示');
+    eq(await p.locator('button[data-i18n-html]').count(), 0, '按鈕翻譯只更新文字 span，不移除圖示與動態標籤節點');
 
     /* ---------------------------------------------------------------- 設定彈窗 */
     group('設定彈窗：Modal、焦點鎖定、Escape、設定保留');
@@ -180,6 +181,27 @@ async function main() {
     await p.waitForFunction(() => window.SB.S.match && window.SB.S.match.phase === 'playing', null, { timeout: 8000 });
     ok(await p.evaluate(() => window.SB.S.screen === 's-game'), '進入對戰畫面');
     ok(await p.evaluate(() => document.getElementById('ov-result').hidden), '開局時沒有結算浮層');
+    /* 工具列不能擋住 HUD；也要檢查英文與窄螢幕換行後的實際命中位置。 */
+    for (const [width, height] of [[320, 568], [390, 844], [844, 390], [768, 1024], [1024, 768], [1440, 900]]) {
+      await p.setViewportSize({ width, height });
+      for (const lang of ['en', 'zh-Hant']) {
+        await p.evaluate(code => I18N.setLang(code), lang);
+        await sleep(100);
+        const blocked = await p.evaluate(() => [...document.querySelectorAll('.hud button')].filter(button => {
+          const r = button.getBoundingClientRect();
+          if (!r.width || !r.height) return false;
+          const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          return r.left < 0 || r.right > innerWidth || !button.contains(hit);
+        }).map(button => button.id));
+        eq(blocked.length, 0, '語系／設定工具列不遮住 HUD ' + width + '×' + height + ' ' + lang + '：' + blocked.join(','));
+      }
+    }
+    await p.setViewportSize({ width: 1024, height: 768 });
+    await p.waitForFunction(() => {
+      const rect = document.getElementById('field').getBoundingClientRect();
+      const size = window.SB.Stage.size();
+      return Math.abs(rect.width - size.w) < 1 && Math.abs(rect.height - size.h) < 1;
+    });
     const t1 = await waitBalloon(p, 'pop');
     ok(!!t1, '天空出現要射的氣球');
     const fb = await p.locator('#field').boundingBox();

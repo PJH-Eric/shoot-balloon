@@ -308,7 +308,7 @@ kbd.key {
 .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
 
 .hud {
-  flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 76px 8px calc(10px + var(--safe-l)); padding-top: calc(8px + var(--safe-t));
+  flex: none; display: flex; align-items: center; gap: 8px; padding: 8px calc(132px + var(--safe-r)) 8px calc(10px + var(--safe-l)); padding-top: calc(8px + var(--safe-t));
   background: var(--night2); border-bottom: 3px solid var(--ink);
 }
 .hud-time, .hud-score { display: flex; align-items: baseline; gap: 5px; padding: 3px 12px; background: var(--ink); border: 2px solid var(--line2); border-radius: 4px; white-space: nowrap; }
@@ -405,7 +405,8 @@ kbd.key {
 .manage + .ovnote, .seatlist ~ .ovnote { margin-top: 12px; }
 .ovbtns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 .ovbtns.three { display: grid; grid-template-columns: 1.3fr 1fr 1fr; }
-.ovbtns.three .tk { padding: 0 8px; min-width: 0; }
+.ovbtns.three .tk { padding: 6px 8px; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.ovbtns.three .tk span { min-width: 0; }
 .trophy { width: 72px; height: 72px; margin: -6px auto -6px; } .trophy-svg { width: 100%; height: 100%; }
 .seatlist { display: grid; gap: 8px; }
 .seg.wrap .seg-btn { flex: 1 1 calc(50% - 8px); }
@@ -415,7 +416,7 @@ kbd.key {
 .seatrow .x { width: 40px; height: 40px; border: 2px solid var(--line2); background: transparent; border-radius: 4px; color: var(--cream); display: grid; place-items: center; }
 .manage { display: grid; gap: 6px; margin-top: 10px; }
 .resulttable { display: grid; gap: 8px; }
-.resrow { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; background: var(--card2); border: 2px solid var(--line2); border-left: 8px solid var(--who, var(--line2)); border-radius: 4px; }
+.resrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; background: var(--card2); border: 2px solid var(--line2); border-left: 8px solid var(--who, var(--line2)); border-radius: 4px; }
 .resrow.win { border-color: var(--gold); border-left-color: var(--who, var(--gold)); background: #3A2D70; }
 .resrow .no { width: 30px; height: 30px; display: grid; place-items: center; background: var(--gold); color: var(--ink); border-radius: 4px; font: 900 16px var(--num); }
 .resrow .nm { font-weight: 900; overflow-wrap: anywhere; } .resrow .nm small { display: block; font-size: 12px; font-weight: 600; color: var(--cream2); }
@@ -490,7 +491,7 @@ kbd.key {
 @media (min-width: 900px) and (min-aspect-ratio: 1/1) { .side-head .tk-icon { display: none; } .side-title { padding: 6px 0; } }
 .hud-sidebtn { position: relative; }
 @media (max-width: 560px) {
-  .hud { gap: 6px; padding-right: 68px; }
+  .hud { gap: 6px; flex-wrap: wrap; }
   .hud-lbl, .hud-unit { display: none; }
   .hud-time b, .hud-score b { font-size: 24px; } .hud-stage { font-size: 14px; letter-spacing: .04em; }
   .stage-no { display: none; } .hud-chip { font-size: 12px; padding: 2px 6px; }
@@ -530,7 +531,7 @@ body.reduce-motion #bgdeco span { display: none; }
 }
 
 /* Global language and settings controls remain reachable at every viewport size. */
-.lang-toggle { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: calc(70px + env(safe-area-inset-right)); min-width: 48px; min-height: 48px; padding: 8px; border: 2px solid #4a3b55; border-radius: 14px; background: #fff0de; color: #4a3b55; font: 800 16px/1.2 system-ui, sans-serif; cursor: pointer; box-shadow: 0 4px 0 #cfb99f; z-index: 1001; }
+.lang-toggle { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: calc(70px + env(safe-area-inset-right)); min-width: 48px; min-height: 48px; z-index: 1001; }
 .lang-toggle:focus-visible { outline: 3px solid #287dac; outline-offset: 3px; }
 .settings-fab { min-width: 48px; min-height: 48px; }
 .panel-head h2, .setrow label, .seatrow .nm, .rmeta { min-width: 0; overflow-wrap: anywhere; }

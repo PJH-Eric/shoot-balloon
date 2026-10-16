@@ -1498,7 +1498,8 @@
 
   function boot() {
 
-    w.I18N.mountToggle({ after: $('b-settings') });
+    var langToggle = w.I18N.mountToggle({ after: $('b-settings'), className: 'tk tk-icon' });
+    langToggle.setAttribute('data-tone', 'paper');
     w.I18N.onChange(function () {
       S.sigs = {};
       if (S.connection) connStatus(S.connection);
