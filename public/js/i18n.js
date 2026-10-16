@@ -25,8 +25,8 @@
   var listeners = [];
   var lang = DEFAULT;
   var toggles = [];
-  var toggleFrame = 0;
-  var toggleObserver;
+  var openMenu = null;
+  var menuStylesInstalled = false;
 
   function normalize(v) {
     if (!v) return null;
@@ -98,31 +98,89 @@
     if (desc) desc.setAttribute('content', t(desc.getAttribute('data-i18n-content')));
   }
 
-  /** Anchor controls in a body-level layer so dialogs cannot cover the language switch. */
-  function positionToggles() {
-    toggleFrame = 0;
-    toggles.forEach(function (button) {
-      var anchor = button._settingsAnchor;
-      if (!anchor) return;
-      var rect = anchor.getBoundingClientRect();
-      var visible = rect.width > 0 && rect.height > 0 && root.getComputedStyle(anchor).visibility !== 'hidden';
-      var left = Math.max(8, rect.left - 56);
-      var top = Math.max(8, rect.top + (rect.height - 48) / 2);
-      var css = 'position:fixed;z-index:2147483000;right:auto;bottom:auto;margin:0;box-sizing:border-box;width:48px;min-width:48px;height:48px;min-height:48px;left:' + left + 'px;top:' + top + 'px;display:' + (visible ? 'grid' : 'none');
-      if (button.style.cssText !== css && button._positionStyle !== css) { button.style.cssText = css; button._positionStyle = css; }
-    });
+  function menuLabel() {
+    return lang === 'en' ? 'Language: English' : '語言：繁體中文';
   }
 
-  function scheduleTogglePosition() {
-    if (!toggleFrame) toggleFrame = root.requestAnimationFrame(positionToggles);
+  function installMenuStyles() {
+    if (menuStylesInstalled) return;
+    menuStylesInstalled = true;
+    var style = root.document.createElement('style');
+    style.textContent =
+      '.language-controls{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;vertical-align:middle;max-width:100%}' +
+      '.language-controls:has(>[data-language-settings][hidden]),.language-controls:has(>[data-language-settings].hidden){display:none!important}' +
+      '.language-controls[data-floating]{top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:2147483000}' +
+      '.language-controls[data-floating="fixed"]{position:fixed}' +
+      '.language-controls[data-floating="absolute"]{position:absolute}' +
+      '.language-controls>.lang-toggle{position:relative!important;inset:auto!important;margin:0!important;box-sizing:border-box;flex:0 0 48px;width:48px!important;min-width:48px!important;height:48px!important;min-height:48px!important;display:inline-grid;place-items:center;padding:0!important}' +
+      '.language-controls>[data-language-settings]{position:relative!important;inset:auto!important;margin:0!important;flex-shrink:0}' +
+      '.language-badge{position:absolute;right:3px;bottom:2px;font:800 10px/1.15 system-ui,sans-serif;letter-spacing:0;padding:1px 2px;border-radius:3px;pointer-events:none;background:inherit;color:inherit}' +
+      '.language-menu{box-sizing:border-box;position:fixed;inset:auto;margin:0;width:188px;max-width:calc(100vw - 16px);padding:6px;gap:4px;z-index:2147483001;display:none;overflow:visible}' +
+      '.language-menu[data-open]{display:grid}' +
+      '.language-menu .language-option{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:46px;padding:10px 12px;border:2px solid transparent;border-radius:inherit;color:inherit;font-family:inherit;font-weight:700;font-size:15px;line-height:1.3;cursor:pointer;touch-action:manipulation}' +
+      '.language-menu .language-option[aria-checked="true"]{background:color-mix(in srgb,currentColor 12%,transparent)}' +
+      '.language-menu .language-option:hover,.language-menu .language-option:focus-visible{outline:0;border-color:currentColor;background:color-mix(in srgb,currentColor 16%,transparent)}';
+    (root.document.head || root.document.body).appendChild(style);
+  }
+
+  function closeMenu(restoreFocus) {
+    if (!openMenu) return;
+    var button = openMenu;
+    openMenu = null;
+    var menu = button._languageMenu;
+    if (menu.hidePopover && menu.matches(':popover-open')) menu.hidePopover();
+    menu.hidden = true;
+    menu.removeAttribute('data-open');
+    button.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) button.focus();
+  }
+
+  function placeMenu(button) {
+    var menu = button._languageMenu;
+    var rect = button.getBoundingClientRect();
+    var bounds = menu.getBoundingClientRect();
+    var left = Math.max(8, Math.min(rect.right - bounds.width, root.innerWidth - bounds.width - 8));
+    var top = rect.bottom + 8;
+    if (top + bounds.height > root.innerHeight - 8) top = Math.max(8, rect.top - bounds.height - 8);
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+  }
+
+  function showMenu(button, focusLast) {
+    if (openMenu === button) { closeMenu(true); return; }
+    closeMenu(false);
+    var menu = button._languageMenu;
+    var theme = root.getComputedStyle(button);
+    menu.style.backgroundColor = theme.backgroundColor;
+    menu.style.backgroundImage = theme.backgroundImage;
+    menu.style.color = theme.color;
+    menu.style.fontFamily = theme.fontFamily;
+    menu.style.border = theme.borderTopWidth + ' ' + theme.borderTopStyle + ' ' + theme.borderTopColor;
+    menu.style.borderRadius = Math.min(16, parseFloat(theme.borderTopLeftRadius) || 12) + 'px';
+    menu.style.boxShadow = theme.boxShadow;
+    menu.hidden = false;
+    menu.setAttribute('data-open', '');
+    if (menu.showPopover) menu.showPopover();
+    openMenu = button;
+    button.setAttribute('aria-expanded', 'true');
+    placeMenu(button);
+    var selected = button._languageOptions.filter(function (item) { return item.getAttribute('aria-checked') === 'true'; })[0];
+    (focusLast ? button._languageOptions[1] : selected || button._languageOptions[0]).focus();
   }
 
   function syncToggles() {
-    toggles.forEach(function (b) {
-      b.setAttribute('lang', lang === 'en' ? 'zh-Hant' : 'en');
-      var label = t('lang.switchTo');
-      b.setAttribute('aria-label', label);
-      b.setAttribute('title', label);
+    toggles.forEach(function (button) {
+      var label = menuLabel();
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+      button.setAttribute('lang', lang);
+      button._languageBadge.textContent = lang === 'en' ? 'EN' : '繁';
+      button._languageMenu.setAttribute('aria-label', lang === 'en' ? 'Choose language' : '選擇語言');
+      button._languageOptions.forEach(function (item) {
+        var selected = item.getAttribute('data-language-option') === lang;
+        item.setAttribute('aria-checked', String(selected));
+        item._languageCheck.textContent = selected ? '✓' : '';
+      });
     });
   }
 
@@ -162,49 +220,111 @@
 
   function onChange(fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; }
 
-  /** 在設定鈕旁插入語言切換鈕。after：設定鈕元素。回傳切換鈕。 */
+  /** 語言入口跟隨設定工具列排版，不另以視窗座標定位。 */
   function mountToggle(opts) {
     var doc = root.document;
     opts = opts || {};
-    var b = doc.createElement('button');
-    b.type = 'button';
-    b.style.zIndex = '2147483000';
-    b.className = 'lang-toggle' + (opts.className ? ' ' + opts.className : '');
-    b.id = opts.id || 'b-lang';
-    // 經緯線地球以主題文字色呈現，避免語系字樣影響按鈕寬度。
-    b.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"' +
+    installMenuStyles();
+    var button = doc.createElement('button');
+    button.type = 'button';
+    button.className = 'lang-toggle' + (opts.className ? ' ' + opts.className : '');
+    button.id = opts.id || 'b-lang';
+    button.setAttribute('aria-haspopup', 'menu');
+    button.setAttribute('aria-expanded', 'false');
+    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"' +
       ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"' +
-      ' aria-hidden="true" focusable="false" style="display:block;margin:auto;pointer-events:none">' +
+      ' aria-hidden="true" focusable="false" style="display:block;margin:auto;transform:translate(-3px,-3px);pointer-events:none">' +
       '<circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="5" ry="10"/>' +
       '<path d="M12 2v20M2 12h20M4 6c4 3 12 3 16 0M4 18c4-3 12-3 16 0"/></svg>';
-    b.addEventListener('click', function () { setLang(lang === 'en' ? 'zh-Hant' : 'en'); });
-    if (opts.after && opts.after.parentNode) opts.after.parentNode.insertBefore(b, opts.after.nextSibling);
-    else if (opts.parent) opts.parent.appendChild(b);
-    if (opts.after) {
-      b._settingsAnchor = opts.after;
+    var badge = doc.createElement('span');
+    badge.className = 'language-badge';
+    badge.setAttribute('aria-hidden', 'true');
+    button.appendChild(badge);
+    button._languageBadge = badge;
+
+    var menu = doc.createElement('div');
+    menu.id = button.id + '-menu';
+    menu.className = 'language-menu';
+    menu.hidden = true;
+    menu.setAttribute('role', 'menu');
+    menu.setAttribute('popover', 'manual');
+    button.setAttribute('aria-controls', menu.id);
+    button._languageMenu = menu;
+    button._languageOptions = SUPPORTED.map(function (code) {
+      var item = doc.createElement('button');
+      item.type = 'button';
+      item.className = 'language-option tk';
+      item.setAttribute('role', 'menuitemradio');
+      item.setAttribute('data-language-option', code);
+      item.setAttribute('lang', code);
+      var text = doc.createElement('span');
+      text.textContent = code === 'en' ? 'English' : '繁體中文';
+      var check = doc.createElement('span');
+      check.setAttribute('aria-hidden', 'true');
+      item._languageCheck = check;
+      item.appendChild(text);
+      item.appendChild(check);
+      item.addEventListener('click', function () {
+        closeMenu(false);
+        if (code !== lang) setLang(code);
+        button.focus();
+      });
+      menu.appendChild(item);
+      return item;
+    });
+    doc.body.appendChild(menu);
+
+    var controls = doc.createElement('span');
+    controls.className = 'language-controls';
+    if (opts.after && opts.after.parentNode) {
+      var anchor = opts.after;
+      var position = root.getComputedStyle(anchor).position;
+      if (position === 'fixed' || position === 'absolute') controls.setAttribute('data-floating', position);
       var anchorId = 'language-settings-' + toggles.length;
-      opts.after.setAttribute('data-language-settings', anchorId);
-      b.setAttribute('data-language-settings-for', anchorId);
-      var positioning = root.getComputedStyle(b).position;
-      if (positioning !== 'fixed' && positioning !== 'absolute') {
-        var slot = doc.createElement('span');
-        slot.className = 'language-toggle-slot';
-        slot.setAttribute('aria-hidden', 'true');
-        slot.style.cssText = 'width:48px;min-width:48px;height:48px;flex:0 0 48px;pointer-events:none';
-        opts.after.parentNode.insertBefore(slot, opts.after);
-      }
-      doc.body.appendChild(b);
-      if (!toggleObserver) {
-        toggleObserver = new root.MutationObserver(scheduleTogglePosition);
-        toggleObserver.observe(doc.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class', 'style'] });
-        root.addEventListener('resize', scheduleTogglePosition);
-        root.addEventListener('scroll', scheduleTogglePosition, true);
-      }
+      anchor.setAttribute('data-language-settings', anchorId);
+      button.setAttribute('data-language-settings-for', anchorId);
+      anchor.parentNode.insertBefore(controls, anchor);
+      controls.appendChild(button);
+      controls.appendChild(anchor);
+    } else {
+      (opts.parent || doc.body).appendChild(controls);
+      controls.appendChild(button);
     }
-    toggles.push(b);
-    positionToggles();
+    button.addEventListener('click', function () { showMenu(button); });
+    button.addEventListener('keydown', function (event) {
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (openMenu !== button) showMenu(button, event.key === 'ArrowUp');
+    });
+    menu.addEventListener('keydown', function (event) {
+      var items = button._languageOptions;
+      var index = items.indexOf(doc.activeElement);
+      var next;
+      if (event.key === 'ArrowDown') next = (index + 1) % items.length;
+      else if (event.key === 'ArrowUp') next = (index + items.length - 1) % items.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = items.length - 1;
+      else if (event.key === 'Escape') { closeMenu(true); event.preventDefault(); }
+      else if (event.key === 'Tab') closeMenu(true);
+      if (next !== undefined) { event.preventDefault(); items[next].focus(); }
+      event.stopPropagation();
+    });
+    if (!toggles.length) {
+      doc.addEventListener('pointerdown', function (event) {
+        if (openMenu && !openMenu.contains(event.target) && !openMenu._languageMenu.contains(event.target)) closeMenu(false);
+      }, true);
+      root.addEventListener('resize', function () { if (openMenu) placeMenu(openMenu); });
+      root.addEventListener('scroll', function () {
+        if (!openMenu) return;
+        var rect = openMenu.getBoundingClientRect();
+        if (rect.bottom <= 0 || rect.top >= root.innerHeight) closeMenu(false);
+        else placeMenu(openMenu);
+      }, true);
+    }
+    toggles.push(button);
     syncToggles();
-    return b;
+    return button;
   }
 
   /** 給連結加上 ?lang=（跨來源同步語言用）。 */
