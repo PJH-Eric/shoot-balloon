@@ -119,7 +119,6 @@
 
   function syncToggles() {
     toggles.forEach(function (b) {
-      b.textContent = lang === 'en' ? '中' : 'EN';
       b.setAttribute('lang', lang === 'en' ? 'zh-Hant' : 'en');
       var label = t('lang.switchTo');
       b.setAttribute('aria-label', label);
@@ -172,6 +171,12 @@
     b.style.zIndex = '2147483000';
     b.className = 'lang-toggle' + (opts.className ? ' ' + opts.className : '');
     b.id = opts.id || 'b-lang';
+    // 經緯線地球以主題文字色呈現，避免語系字樣影響按鈕寬度。
+    b.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"' +
+      ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"' +
+      ' aria-hidden="true" focusable="false" style="display:block;margin:auto;pointer-events:none">' +
+      '<circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="5" ry="10"/>' +
+      '<path d="M12 2v20M2 12h20M4 6c4 3 12 3 16 0M4 18c4-3 12-3 16 0"/></svg>';
     b.addEventListener('click', function () { setLang(lang === 'en' ? 'zh-Hant' : 'en'); });
     if (opts.after && opts.after.parentNode) opts.after.parentNode.insertBefore(b, opts.after.nextSibling);
     else if (opts.parent) opts.parent.appendChild(b);
