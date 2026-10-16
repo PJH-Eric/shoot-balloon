@@ -976,7 +976,7 @@
     /* 已離開房間／房間已關閉時，路上還沒到的同步包要丟掉，不然會被拉回對戰畫面 */
     if (S.mode !== 'online' || S.closed) return;
     if (view.match && view.phase !== 'over') GameAnalytics.sync(view.phase, view.code + '|' + view.match.seed, {
-      mode: 'online', difficulty: view.pace, players: view.match.players.length,
+      mode: 'online', difficulty: view.pace, players: view.match.standings.length,
       spectator: !view.you || view.you.role !== 'player'
     });
     var wasPhase = S.view ? S.view.phase : null;
