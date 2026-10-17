@@ -124,28 +124,6 @@
       return host + tag;
     },
 
-    /**
-     * 打 /health 確認伺服器活著。
-     * 免費雲端常在睡覺，冷啟動可能要十幾秒，所以逾時放寬到 10 秒。
-     * cb(state)：'unset' ｜ 'invalid' ｜ 'checking' ｜ 'ok' ｜ 'fail'
-     */
-    checkHealth: function (cb) {
-      if (!Config.isOnlineEnabled()) return cb(Config.status);
-      if (typeof w.fetch !== 'function') return cb('fail');
-      cb('checking');
-      var done = false;
-      var timer = setTimeout(function () { if (!done) { done = true; cb('fail'); } }, 10000);
-      w.fetch(Config.url('/health'), { method: 'GET', cache: 'no-store' })
-        .then(function (res) { return res.ok ? 'ok' : 'fail'; })
-        .catch(function () { return 'fail'; })
-        .then(function (state) {
-          if (done) return;
-          done = true;
-          clearTimeout(timer);
-          cb(state);
-        });
-    },
-
     /* 測試用：不依賴瀏覽器環境也能驗證解析規則 */
     _resolve: resolve
   };
