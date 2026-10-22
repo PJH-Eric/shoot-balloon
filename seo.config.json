@@ -6,5 +6,8 @@
   "lobbyUrl": "https://pjh-eric.github.io/game-lobby/",
   "googleSiteVerification": "",
   "genre": "射擊",
-  "players": "1-5"
+  "players": "1-5",
+  "iconUrl": "https://pjh-eric.github.io/shoot-balloon/favicon-96.png",
+  "ogImage": "https://pjh-eric.github.io/shoot-balloon/og-image.png",
+  "ogImageAlt": "射氣球遊戲圖示"
 }

@@ -39,6 +39,7 @@ function inject(root, env = process.env) {
     name: cfg.title.split('｜')[0], url: cfg.siteUrl, description: cfg.description,
     applicationCategory: 'GameApplication', operatingSystem: 'Any', inLanguage: 'zh-Hant',
     genre: cfg.genre, offers: { '@type': 'Offer', price: '0', priceCurrency: 'TWD' },
+    image: cfg.ogImage || undefined, thumbnailUrl: cfg.iconUrl || undefined,
     isPartOf: { '@type': 'WebSite', url: cfg.lobbyUrl }
   };
   const head = [
@@ -57,10 +58,15 @@ function inject(root, env = process.env) {
     '<meta property="og:description" content="' + esc(cfg.description) + '">',
     '<meta property="og:url" content="' + esc(cfg.siteUrl) + '">',
     cfg.ogImage && '<meta property="og:image" content="' + esc(cfg.ogImage) + '">',
+    cfg.ogImage && '<meta property="og:image:type" content="image/png">',
+    cfg.ogImage && '<meta property="og:image:width" content="1200">',
+    cfg.ogImage && '<meta property="og:image:height" content="630">',
+    cfg.ogImage && '<meta property="og:image:alt" content="' + esc(cfg.ogImageAlt || cfg.title) + '">',
     '<meta name="twitter:card" content="' + (cfg.ogImage ? 'summary_large_image' : 'summary') + '">',
     '<meta name="twitter:title" content="' + esc(cfg.title) + '">',
     '<meta name="twitter:description" content="' + esc(cfg.description) + '">',
     cfg.ogImage && '<meta name="twitter:image" content="' + esc(cfg.ogImage) + '">',
+    cfg.ogImage && '<meta name="twitter:image:alt" content="' + esc(cfg.ogImageAlt || cfg.title) + '">',
     '<script type="application/ld+json">' + safeJson(jsonLd) + '</script>', END
   ].filter(Boolean).join('\n');
   html = html.replace(MARK, () => head);

@@ -39,6 +39,14 @@ try {
   assert.ok(built.includes('name="twitter:card"'));
   const ld = JSON.parse(built.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
   assert.equal(ld.url, cfg.siteUrl);
+  if (cfg.ogImage) {
+    assert.equal(ld.image, cfg.ogImage);
+    assert.equal(ld.thumbnailUrl, cfg.iconUrl);
+    assert.ok(built.includes('property="og:image" content="' + cfg.ogImage + '"'));
+    assert.ok(built.includes('property="og:image:width" content="1200"'));
+    assert.ok(built.includes('property="og:image:height" content="630"'));
+    assert.ok(built.includes('name="twitter:image" content="' + cfg.ogImage + '"'));
+  }
   const sitemap = fs.readFileSync(path.join(temp, 'public/sitemap.xml'), 'utf8');
   assert.equal((sitemap.match(/<loc>/g) || []).length, 1);
   assert.ok(sitemap.includes(cfg.siteUrl));
