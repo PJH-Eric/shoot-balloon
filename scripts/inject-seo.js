@@ -43,12 +43,10 @@ function inject(root, env = process.env) {
   };
   const head = [
     MARK,
-    // 即使誤把部署產物在本機開啟，也不載入 GA 或傳送資料；不送邀請 query/hash。
-    '<script>(function(){if(location.hostname!=="pjh-eric.github.io")return;' +
-      'window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments)};' +
-      'gtag("js",new Date());gtag("config",' + safeJson(gaId) + ',{game_id:' + safeJson(cfg.id) +
-      ',page_location:' + safeJson(cfg.siteUrl) + '});' +
-      'var s=document.createElement("script");s.async=true;s.src="https://www.googletagmanager.com/gtag/js?id=' + gaId + '";document.head.appendChild(s);})();</script>',
+    // 共用 analytics.js 負責正式環境限制、URL 清理與單次初始化。
+    '<script>window.GAME_ANALYTICS_CONFIG=' + safeJson({
+      measurement_id: gaId, game_id: cfg.id, page_location: cfg.siteUrl
+    }) + ';</script>',
     cfg.googleSiteVerification && '<meta name="google-site-verification" content="' + esc(cfg.googleSiteVerification) + '">',
     '<meta name="description" data-i18n-content="' + esc(descriptionKey ? descriptionKey[1] : 'meta.desc') + '" content="' + esc(cfg.description) + '">',
     '<link rel="canonical" href="' + esc(cfg.siteUrl) + '">',
