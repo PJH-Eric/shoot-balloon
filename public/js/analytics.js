@@ -64,7 +64,7 @@
     if (['lobby', 'invite_link'].indexOf(params.via) !== -1) out.via = params.via;
     if (['add', 'remove'].indexOf(params.action) === -1) delete out.action;
     var lang = global.I18N && global.I18N.lang;
-    out.app_language = lang === 'en' ? 'en' : 'zh-Hant';
+    out.app_language = lang === 'en' || lang === 'zh-Hans' ? lang : 'zh-Hant';
     out.transport_type = 'beacon';
     return out;
   }

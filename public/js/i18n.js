@@ -18,10 +18,10 @@
   'use strict';
 
   var KEY = 'game-island-lang';
-  var SUPPORTED = ['zh-Hant', 'en'];
+  var SUPPORTED = ['zh-Hant', 'zh-Hans', 'en'];
   var DEFAULT = 'zh-Hant';
   var messagePatterns = null;
-  var dicts = { 'zh-Hant': {}, en: {} };
+  var dicts = { 'zh-Hant': {}, 'zh-Hans': {}, en: {} };
   var listeners = [];
   var lang = DEFAULT;
   var toggles = [];
@@ -30,9 +30,9 @@
 
   function normalize(v) {
     if (!v) return null;
-    v = String(v).toLowerCase();
+    v = String(v).toLowerCase().replace(/_/g, '-');
     if (v === 'en' || v.indexOf('en-') === 0 || v.indexOf('en_') === 0) return 'en';
-    if (v.indexOf('zh') === 0) return 'zh-Hant';
+    if (v.indexOf('zh') === 0) return v.indexOf('zh-hans') === 0 || v.indexOf('zh-cn') === 0 || v.indexOf('zh-sg') === 0 ? 'zh-Hans' : 'zh-Hant';
     return null;
   }
 
@@ -99,7 +99,7 @@
   }
 
   function menuLabel() {
-    return lang === 'en' ? 'Language: English' : '語言：繁體中文';
+    return lang === 'en' ? 'Language: English' : lang === 'zh-Hans' ? '语言：简体中文' : '語言：繁體中文';
   }
 
   function installMenuStyles() {
@@ -165,7 +165,7 @@
     button.setAttribute('aria-expanded', 'true');
     placeMenu(button);
     var selected = button._languageOptions.filter(function (item) { return item.getAttribute('aria-checked') === 'true'; })[0];
-    (focusLast ? button._languageOptions[1] : selected || button._languageOptions[0]).focus();
+    (focusLast ? button._languageOptions[button._languageOptions.length - 1] : selected || button._languageOptions[0]).focus();
   }
 
   function syncToggles() {
@@ -174,8 +174,8 @@
       button.setAttribute('aria-label', label);
       button.setAttribute('title', label);
       button.setAttribute('lang', lang);
-      button._languageBadge.textContent = lang === 'en' ? 'EN' : '繁';
-      button._languageMenu.setAttribute('aria-label', lang === 'en' ? 'Choose language' : '選擇語言');
+      button._languageBadge.textContent = lang === 'en' ? 'EN' : lang === 'zh-Hans' ? '简' : '繁';
+      button._languageMenu.setAttribute('aria-label', lang === 'en' ? 'Choose language' : lang === 'zh-Hans' ? '选择语言' : '選擇語言');
       button._languageOptions.forEach(function (item) {
         var selected = item.getAttribute('data-language-option') === lang;
         item.setAttribute('aria-checked', String(selected));
@@ -258,7 +258,7 @@
       item.setAttribute('data-language-option', code);
       item.setAttribute('lang', code);
       var text = doc.createElement('span');
-      text.textContent = code === 'en' ? 'English' : '繁體中文';
+      text.textContent = code === 'en' ? 'English' : code === 'zh-Hans' ? '简体中文' : '繁體中文';
       var check = doc.createElement('span');
       check.setAttribute('aria-hidden', 'true');
       item._languageCheck = check;
