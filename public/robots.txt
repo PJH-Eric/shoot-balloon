@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pjh-eric.github.io/shoot-balloon/sitemap.xml

@@ -1,0 +1,38 @@
+{
+  "zh-Hant": {
+    "name": "射氣球",
+    "summary": "氣球從攤位後面往上飄，點一下射破加分，白鴿、天燈和炸彈氣球可別射。四段難度，也能線上搶分或觀戰。",
+    "modes": [
+      "單機四段難度",
+      "電腦對戰",
+      "線上房間",
+      "觀戰",
+      "邀請連結"
+    ],
+    "controls": "點氣球射擊（鍵盤：方向鍵移動準星、空白鍵發射）"
+  },
+  "zh-Hans": {
+    "name": "射气球",
+    "summary": "气球从摊位后面往上飘，点一下射破加分，白鸽、天灯和炸弹气球可别射。四段难度，也能线上抢分或观战。",
+    "modes": [
+      "单机四段难度",
+      "电脑对战",
+      "线上房间",
+      "观战",
+      "邀请连结"
+    ],
+    "controls": "点气球射击（键盘：方向键移动准星、空白键发射）"
+  },
+  "en": {
+    "name": "Balloon Shooter",
+    "summary": "Balloons float up from behind the stall. Tap to pop them for points, but do not shoot the doves, sky lanterns, or bomb balloons. Four difficulty levels, plus online score battles and spectating.",
+    "modes": [
+      "Solo, 4 Difficulties",
+      "vs Computer",
+      "Online Room",
+      "Spectate",
+      "Invite Link"
+    ],
+    "controls": "Tap a balloon to shoot (keyboard: arrow keys to move the crosshair, space bar to fire)"
+  }
+}

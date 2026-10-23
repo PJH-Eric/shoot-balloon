@@ -4,6 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const MARK = '<!--SEO:HEAD-->';
 const END = '<!--SEO:END-->';
+const GAMEPLAY_MARK = '<!--SEO:GAMEPLAY-->';
+const GAMEPLAY_END = '<!--SEO:GAMEPLAY:END-->';
+const GAMEPLAY_LOCALES = {
+  'zh-Hant': { mode: '玩法模式', controls: '操作方式', separator: '、' },
+  'zh-Hans': { mode: '玩法模式', controls: '操作方式', separator: '、' },
+  en: { mode: 'Game modes', controls: 'How to play', separator: ', ' }
+};
 const esc = value => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const safeJson = value => JSON.stringify(value).replace(/</g, '\\u003c');
 
@@ -20,10 +27,42 @@ function validate(cfg, gaId) {
   if (cfg.ogImage && !/^https:\/\//.test(cfg.ogImage)) throw new Error('ogImage 必須是 HTTPS 網址');
 }
 
+function validateGameplay(gameplay) {
+  for (const locale of Object.keys(GAMEPLAY_LOCALES)) {
+    const entry = gameplay && gameplay[locale];
+    const hasTextFields = entry && ['name', 'summary', 'controls']
+      .every(key => typeof entry[key] === 'string' && entry[key].trim());
+    const hasValidModes = entry && Array.isArray(entry.modes) && entry.modes.length &&
+      entry.modes.every(mode => typeof mode === 'string' && mode.trim());
+    if (!hasTextFields || !hasValidModes) {
+      throw new Error('seo.gameplay.json 缺少完整語系或玩法欄位：' + locale);
+    }
+  }
+}
+
+function renderGameplay(gameplay) {
+  validateGameplay(gameplay);
+  const sections = Object.entries(GAMEPLAY_LOCALES).map(([locale, labels]) => {
+    const entry = gameplay[locale];
+    const punctuation = locale === 'en' ? ': ' : '：';
+    return [
+      '<section lang="' + locale + '">',
+      '<h2>' + esc(entry.name) + '</h2>',
+      '<p>' + esc(entry.summary) + '</p>',
+      '<p><strong>' + labels.mode + punctuation + '</strong>' + entry.modes.map(esc).join(labels.separator) + '</p>',
+      '<p><strong>' + labels.controls + punctuation + '</strong>' + esc(entry.controls) + '</p>',
+      '</section>'
+    ].join('\n');
+  });
+  return [GAMEPLAY_MARK, '<noscript><div class="seo-gameplay">' + sections.join('\n') + '</div></noscript>', GAMEPLAY_END].join('\n');
+}
+
 function inject(root, env = process.env) {
   const cfg = JSON.parse(fs.readFileSync(path.join(root, 'seo.config.json'), 'utf8'));
+  const gameplay = JSON.parse(fs.readFileSync(path.join(root, 'seo.gameplay.json'), 'utf8'));
   const gaId = env.GA_MEASUREMENT_ID || 'G-PG79WZK8QY';
   validate(cfg, gaId);
+  validateGameplay(gameplay);
   const indexPath = path.join(root, 'public', 'index.html');
   let html = fs.readFileSync(indexPath, 'utf8');
   if (html.split(MARK).length !== 2) throw new Error('index.html 必須有一個 ' + MARK);
@@ -70,14 +109,19 @@ function inject(root, env = process.env) {
     '<script type="application/ld+json">' + safeJson(jsonLd) + '</script>', END
   ].filter(Boolean).join('\n');
   html = html.replace(MARK, () => head);
+  html = html.replace(/\r?\n?<!--SEO:GAMEPLAY-->[\s\S]*?<!--SEO:GAMEPLAY:END-->\r?\n?/g, '\n');
+  if (!/<\/body>/i.test(html)) throw new Error('index.html 缺少 </body>');
+  html = html.replace(/(?:\r?\n)*<\/body>/i, '\n' + renderGameplay(gameplay) + '\n</body>');
   fs.writeFileSync(indexPath, html, 'utf8');
   fs.writeFileSync(path.join(root, 'public', 'sitemap.xml'),
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
     '  <url><loc>' + esc(cfg.siteUrl) + '</loc></url>\n</urlset>\n', 'utf8');
+  fs.writeFileSync(path.join(root, 'public', 'robots.txt'),
+    'User-agent: *\nAllow: /\n\nSitemap: ' + esc(cfg.siteUrl) + 'sitemap.xml\n', 'utf8');
   return cfg;
 }
 
-module.exports = { inject, validate };
+module.exports = { inject, renderGameplay, validate, validateGameplay };
 if (require.main === module) {
   try { console.log('✓ SEO 與 GA4 已注入：' + inject(path.join(__dirname, '..')).id); }
   catch (error) { console.error(error.message); process.exitCode = 1; }

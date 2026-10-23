@@ -8,9 +8,15 @@ const os = require('os');
 const path = require('path');
 const vm = require('vm');
 const { inject, validate } = require('../scripts/inject-seo');
+const escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const root = path.join(__dirname, '..');
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'seo.config.json'), 'utf8'));
+const gameplay = JSON.parse(fs.readFileSync(path.join(root, 'seo.gameplay.json'), 'utf8'));
 const source = fs.readFileSync(path.join(root, 'public/index.html'), 'utf8');
+const withoutGameplay = html => html
+  .replace(/(?:\r?\n)?<!--SEO:GAMEPLAY-->[\s\S]*?<!--SEO:GAMEPLAY:END-->\s*/, '')
+  .replace(/\r\n/g, '\n')
+  .replace(/\n*<\/body>/i, '\n</body>');
 validate(cfg, 'G-PG79WZK8QY');
 assert.ok(source.includes('<!--SEO:HEAD-->'));
 assert.ok(source.includes('js/analytics.js'));
@@ -29,6 +35,7 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'game-seo-'));
 try {
   fs.mkdirSync(path.join(temp, 'public'));
   fs.writeFileSync(path.join(temp, 'seo.config.json'), JSON.stringify(cfg), 'utf8');
+  fs.writeFileSync(path.join(temp, 'seo.gameplay.json'), JSON.stringify(gameplay), 'utf8');
   fs.writeFileSync(path.join(temp, 'public/index.html'), source, 'utf8');
   inject(temp, {});
   const built = fs.readFileSync(path.join(temp, 'public/index.html'), 'utf8');
@@ -37,6 +44,17 @@ try {
   assert.ok(built.includes('href="' + cfg.siteUrl + '"'));
   assert.ok(built.includes('property="og:title"'));
   assert.ok(built.includes('name="twitter:card"'));
+  assert.equal((built.match(/<!--SEO:GAMEPLAY-->/g) || []).length, 1);
+  for (const locale of ['zh-Hant', 'zh-Hans', 'en']) {
+    const entry = gameplay[locale];
+    assert.ok(built.includes('<section lang="' + locale + '">'));
+    for (const value of [entry.name, entry.summary, ...entry.modes, entry.controls]) assert.ok(built.includes(escapeHtml(value)));
+  }
+  assert.equal(
+    withoutGameplay(built.slice(built.indexOf('</head>'))),
+    withoutGameplay(source.slice(source.indexOf('</head>'))),
+    '玩法 fallback 不得更動既有畫面 HTML'
+  );
   const ld = JSON.parse(built.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
   assert.equal(ld.url, cfg.siteUrl);
   if (cfg.ogImage) {
@@ -50,6 +68,9 @@ try {
   const sitemap = fs.readFileSync(path.join(temp, 'public/sitemap.xml'), 'utf8');
   assert.equal((sitemap.match(/<loc>/g) || []).length, 1);
   assert.ok(sitemap.includes(cfg.siteUrl));
+  const robots = fs.readFileSync(path.join(temp, 'public/robots.txt'), 'utf8');
+  assert.ok(robots.includes('Allow: /'));
+  assert.ok(robots.includes('Sitemap: ' + cfg.siteUrl + 'sitemap.xml'));
   inject(temp, {});
   assert.equal(fs.readFileSync(path.join(temp, 'public/index.html'), 'utf8'), built, '注入必須可重複執行');
   const bootstrap = built.match(/<script>([\s\S]*?)<\/script>/)[1];
@@ -99,4 +120,4 @@ browser.gtag = () => { throw new Error('blocked'); };
 assert.doesNotThrow(() => browser.GameAnalytics.track('room_create'));
 delete browser.gtag;
 assert.doesNotThrow(() => browser.GameAnalytics.track('room_join'));
-console.log('✓ SEO 注入、sitemap、本機隔離與事件去重測試通過');
+console.log('✓ SEO 注入、三語玩法 HTML、robots、sitemap、本機隔離與事件去重測試通過');
