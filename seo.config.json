@@ -8,6 +8,6 @@
   "genre": "射擊",
   "players": "1-5",
   "iconUrl": "https://pjh-eric.github.io/shoot-balloon/favicon-96.png",
-  "ogImage": "https://pjh-eric.github.io/shoot-balloon/og-image.png",
-  "ogImageAlt": "射氣球遊戲圖示"
+  "ogImage": "https://pjh-eric.github.io/shoot-balloon/assets/images/cover.webp",
+  "ogImageAlt": "射氣球 遊戲封面"
 }
