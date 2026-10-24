@@ -12,3 +12,18 @@ Thumbs.db
 coverage/
 dist/
 screenshots/
+
+# 可重新產生的測試截圖、暫存與快取
+/shots/
+/.shots/
+/test-results/
+/playwright-report/
+/.cache/
+/.pytest_cache/
+**/__pycache__/
+*.pyc
+*.tmp
+*.bak
+*.tsbuildinfo
+/tmp/
+/temp/

@@ -153,3 +153,11 @@ tests/ scripts/    測試與截圖
 - **音樂與音效**：全部由 Web Audio 即時合成（`public/js/audio.js`），沒有外部音檔，沒有授權問題。要換成正式音檔，保留 `Sound.play / startBgm / stopBgm` 介面即可。
 - **圖像**：全部是專案內自繪的 SVG（`public/js/art.js`），沒有外部圖檔。
 - 字體使用系統字體，沒有嵌入或下載字型。
+
+## 維護與驗證產物
+
+介面支援繁體中文、簡體中文與英文；從右上角語言選單切換，新增說明文字時須同步維護三種語系。遊戲人數、操作與勝負條件以本文件的玩法說明及規則核心為準。
+
+以 `package.json` 的 scripts 為可執行指令來源；`npm test` 執行基本驗證，`npm run verify` 執行該專案列出的整合驗證。需要 Playwright、瀏覽器或網路的檢查，依各測試章節的前置條件執行。
+
+截圖、測試報告、記錄檔及快取為可重新產生的驗證產物，不屬於正式遊戲資產，也不提交版本控制。測試完成後可清除 `screenshots/`、`shots/`、`.shots/`、`test-results/`、`playwright-report/`、`coverage/`、`.cache/`、`tmp/`、`temp/` 與 `*.log`。保留正式圖片、圖示、音訊、字型、原始碼、測試案例、鎖定檔及 `.env.example`；`node_modules/` 是相依套件目錄，不能當成圖片或暫存檔一起刪除。
