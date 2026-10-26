@@ -13,6 +13,7 @@
   var Config = w.GameConfig;
   var socket = null;
   var loading = null;
+  var connectionGeneration = 0;
   var listeners = {};
   var status = 'idle';    // idle | loading | connecting | connected | error | offline
   var lastError = '';
@@ -42,6 +43,7 @@
   /** key／params 讓畫面在切換語言時能重新翻譯目前的狀態文字 */
   function setStatus(next, message, key, params) {
     status = next;
+    if (w.ServerOutage) w.ServerOutage.state(next);
     lastError = message || '';
     emitLocal('status', { status: status, message: lastError, key: key || null, params: params || null });
   }
@@ -65,6 +67,8 @@
       s.async = true;
       s.onload = function () { resolve(); };
       s.onerror = function () {
+        loading = null;
+        s.remove();
         reject(fail('srv.on.unreachable', { where: Config.describe() }, (globalThis.I18N ? globalThis.I18N.t("text.228") : "連不到遊戲伺服器（") + Config.describe() + (globalThis.I18N ? globalThis.I18N.t("text.227") : "），請確認伺服器有開著。")));
       };
       document.head.appendChild(s);
@@ -85,7 +89,10 @@
     }
     if (socket && socket.connected) return Promise.resolve(socket);
 
+    var generation = connectionGeneration;
+    if (w.ServerOutage) w.ServerOutage.state('begin');
     return loadScript().then(function () {
+      if (generation !== connectionGeneration) throw new Error('Connection cancelled');
       if (socket) { socket.connect(); return waitHello(identity); }
       setStatus('connecting');
       socket = w.io(Config.serverUrl, {
@@ -171,6 +178,7 @@
   }
 
   function disconnect() {
+    connectionGeneration++;
     if (socket) { socket.disconnect(); }
     setStatus('idle');
   }

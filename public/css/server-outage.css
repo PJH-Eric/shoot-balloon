@@ -1,0 +1,72 @@
+:root {
+  --outage-bg: var(--cream);
+  --outage-ink: var(--ink);
+  --outage-edge: var(--gold);
+  --outage-accent: var(--gold);
+  --outage-button-ink: var(--ink);
+  --outage-radius: 6px;
+  --outage-button-radius: 6px;
+  --outage-shadow: 8px 8px 0 var(--red);
+}
+/* Tokens below are supplied by each game's existing visual system. */
+.server-outage-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgb(0 0 0 / 65%);
+  touch-action: manipulation;
+}
+.server-outage-panel {
+  box-sizing: border-box;
+  width: min(100%, 440px);
+  padding: clamp(18px, 4vw, 30px);
+  color: var(--outage-ink);
+  background: var(--outage-bg);
+  border: 3px solid var(--outage-edge);
+  border-radius: var(--outage-radius);
+  box-shadow: var(--outage-shadow);
+  font-family: inherit;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.server-outage-panel h2 {
+  margin: 0 0 12px;
+  color: inherit;
+  font: inherit;
+  font-size: clamp(20px, 5vw, 26px);
+  font-weight: 900;
+  line-height: 1.35;
+}
+.server-outage-panel p {
+  margin: 0 0 20px;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.server-outage-button {
+  appearance: none;
+  box-sizing: border-box;
+  min-width: 128px;
+  min-height: 48px;
+  max-width: 100%;
+  padding: 10px 22px;
+  color: var(--outage-button-ink);
+  background: var(--outage-accent);
+  border: 2px solid var(--outage-edge);
+  border-radius: var(--outage-button-radius);
+  box-shadow: 0 4px 0 var(--outage-edge);
+  font: inherit;
+  font-weight: 900;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.server-outage-button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--outage-edge); }
+.server-outage-button:focus-visible { outline: 3px solid var(--outage-ink); outline-offset: 5px; }
+@media (max-height: 420px) {
+  .server-outage-panel { padding: 16px 20px; }
+  .server-outage-panel h2 { margin-bottom: 8px; }
+  .server-outage-panel p { margin-bottom: 12px; line-height: 1.5; }
+}
