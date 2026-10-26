@@ -4,6 +4,7 @@
 
   var timer = null, active = false, shown = false, mask = null, previousFocus = null;
   var background = [];
+  var eligible = false, attempted = false, connectionState = 'idle';
   var WAIT_MS = 30000; // User-selected online connection timeout; cancel on recovery or exit.
 
   function copy(now, language) {
@@ -34,7 +35,7 @@
   }
 
   function show() {
-    if (shown || !active) return;
+    if (shown || !active || !eligible) return;
     shown = true;
     previousFocus = document.activeElement;
     var words = copy(new Date(), document.documentElement.lang || 'zh-Hant');
@@ -68,20 +69,35 @@
     button.focus();
   }
 
+  function reset() {
+    clearTimeout(timer);
+    timer = null;
+    active = false;
+    shown = false;
+    close();
+  }
+
+  function setScreen(screen) {
+    var next = /^(s-)?(lobby|room)$/.test(screen);
+    if (eligible === next) return;
+    eligible = next;
+    reset();
+    if (eligible) state(connectionState);
+  }
+
   function state(value) {
+    connectionState = value;
     if (/^(open|online|connected|ok|idle|unset|unavailable|disabled|nourl)$/.test(value)) {
-      clearTimeout(timer);
-      timer = null;
-      active = false;
-      shown = false;
-      close();
+      attempted = false;
+      reset();
       return;
     }
-    if (!/^(begin|connecting|loading|waking|retrying|reconnecting)$/.test(value)) return;
+    if (/^(begin|connecting|loading|waking|retrying|reconnecting)$/.test(value)) attempted = true;
+    if (!attempted || !eligible || !/^(begin|connecting|loading|waking|retrying|reconnecting|error|offline|failed|closed)$/.test(value)) return;
     if (active) return;
     active = true;
     timer = setTimeout(show, WAIT_MS);
   }
 
-  w.ServerOutage = { state: state, copy: copy };
+  w.ServerOutage = { state: state, setScreen: setScreen, copy: copy };
 })(window);

@@ -69,6 +69,7 @@
   function colorHex(key) { return Rules.PLAYER_COLOR_HEX[key] || '#59B7FF'; }
 
   function show(id) {
+    if (w.ServerOutage) w.ServerOutage.setScreen(id);
     els('.screen').forEach(function (s) { s.classList.toggle('active', s.id === id); });
     S.screen = id;
     if (w.NetworkLatency) w.NetworkLatency.setActive(id === 's-game' && S.mode === 'online' && !!S.view && S.view.phase === 'playing');

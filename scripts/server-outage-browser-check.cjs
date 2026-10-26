@@ -40,6 +40,7 @@ const server = http.createServer((req, res) => {
       const skip = page.getByRole('button', { name: /跳過教學/ });
       if (await skip.isVisible()) await skip.click();
       const online = page.getByRole('button', { name: /線上|线上|跟別人玩/ }).first();
+      await online.waitFor({ state: 'visible', timeout: 10000 });
       if (!await online.isVisible()) throw new Error(project + ': missing online entry; ' + await page.locator('button:visible').allTextContents());
       await online.click();
       if (project === 'stair-kids') await page.locator('[data-go="lobby"]').click();
@@ -47,7 +48,11 @@ const server = http.createServer((req, res) => {
       await page.clock.fastForward(20000);
       assert.equal(await page.locator('.server-outage-mask').count(), 0, project + ': no premature cold-start notice');
       await page.clock.fastForward(11000);
-      await page.getByRole('alertdialog').waitFor({ timeout: 2000 });
+      await page.getByRole('alertdialog').waitFor({ timeout: 2000 }).catch(async error => {
+        console.log(project + ': errors ' + JSON.stringify(errors));
+        console.log(project + ': current UI ' + (await page.locator('button:visible').allTextContents()).slice(0, 12).join(' | '));
+        throw error;
+      });
       for (const [width, height] of sizes) {
         await page.setViewportSize({ width, height });
         const bounds = await page.getByRole('alertdialog').boundingBox();
@@ -89,6 +94,7 @@ const server = http.createServer((req, res) => {
       for (const lang of ['zh-Hans', 'en']) {
         await page.evaluate(lang => {
           document.documentElement.lang = lang;
+          window.ServerOutage.setScreen('lobby');
           window.ServerOutage.state('idle');
           window.ServerOutage.state('begin');
         }, lang);
@@ -101,6 +107,24 @@ const server = http.createServer((req, res) => {
         await page.screenshot({ path: path.join(shots, `${project}-${lang}-390x844.png`) });
         await page.locator('.server-outage-button').click();
       }
+      await page.evaluate(() => {
+        window.ServerOutage.state('idle');
+        window.ServerOutage.setScreen('lobby');
+        window.ServerOutage.state('begin');
+      });
+      await page.clock.fastForward(20000);
+      await page.evaluate(() => window.ServerOutage.setScreen('game'));
+      await page.clock.fastForward(60000);
+      assert.equal(await page.getByRole('alertdialog').count(), 0, project + ': entering gameplay cancels pending notice');
+      await page.evaluate(() => window.ServerOutage.state('retrying'));
+      await page.clock.fastForward(60000);
+      assert.equal(await page.getByRole('alertdialog').count(), 0, project + ': no outage dialog during gameplay retries');
+      await page.evaluate(() => window.ServerOutage.setScreen('room'));
+      await page.clock.fastForward(30000);
+      await page.getByRole('alertdialog').waitFor({ timeout: 2000 });
+      await page.evaluate(() => window.ServerOutage.setScreen('game'));
+      assert.equal(await page.getByRole('alertdialog').count(), 0, project + ': entering gameplay closes an open notice');
+      assert.equal(await page.locator('body > [inert]').count(), 0, project + ': gameplay is interactive after closing notice');
       assert.deepEqual(errors, [], project + ': no uncaught JS/native alerts');
       console.log(project + ': PASS real connection failure, 5 viewports, keyboard, no native alerts');
       results.push({ project, pass: true });
