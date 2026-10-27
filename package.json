@@ -16,7 +16,7 @@
     "test:analytics": "node tests/analytics.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "^26.12.1"
   },
   "dependencies": {
     "express": "^4.21.2",

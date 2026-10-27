@@ -19,7 +19,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
-        value: "20"
+        value: "26.12.1"
       # 允許連線的前端來源，逗號分隔。
       # 前端和伺服器都在這個服務上時可以留 *；
       # 若前端另外放在 GitHub Pages 之類的地方，請填那個網址。

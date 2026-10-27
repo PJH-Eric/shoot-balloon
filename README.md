@@ -16,7 +16,7 @@ npm install
 npm start            # http://localhost:3030
 ```
 
-需要 Node.js 18 以上。
+需要 Node.js 26.12.1 或更新的 26.x 修補版本。
 
 ---
 

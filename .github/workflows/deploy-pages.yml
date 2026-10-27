@@ -46,7 +46,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "26.12.1"
 
       - name: 規則單元測試（沒過就不佈署）
         run: node tests/verify.js
