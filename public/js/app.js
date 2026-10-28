@@ -69,6 +69,8 @@
   function colorHex(key) { return Rules.PLAYER_COLOR_HEX[key] || '#59B7FF'; }
 
   function show(id) {
+    if (id === 's-home' || id === 's-solo') Online.disconnect();
+    if (id === 's-lobby' && S.screen !== 's-lobby') { S.onlineCount = null; paintOnlineCount(); }
     if (w.ServerOutage) w.ServerOutage.setScreen(id);
     els('.screen').forEach(function (s) { s.classList.toggle('active', s.id === id); });
     S.screen = id;
@@ -818,6 +820,8 @@
 
   function connStatus(st) {
     S.connection = st;
+    if (st.status !== 'connected') S.onlineCount = null;
+    paintOnlineCount();
     var dot = $('conn-dot'), txt = $('conn-text');
     var map = {
       idle: ['', (globalThis.I18N ? globalThis.I18N.t("text.090") : "尚未連線")], loading: ['warn', (globalThis.I18N ? globalThis.I18N.t("text.089") : "正在載入連線程式…")],
@@ -842,6 +846,8 @@
 
   function paintRoomList(payload) {
     S.roomList = payload;
+    S.onlineCount = Number.isInteger(payload.online) && payload.online >= 0 ? payload.online : null;
+    paintOnlineCount();
     $('rooms-count').textContent = payload.total || 0;
     var list = payload.rooms || [];
     if (!list.length) {
@@ -862,6 +868,13 @@
         + '</div>';
     }).join('');
     UI.decorate($('room-list'));
+  }
+
+  function paintOnlineCount() {
+    var el = $('online-count');
+    var visible = S.connection && S.connection.status === 'connected' && Number.isInteger(S.onlineCount);
+    el.hidden = !visible;
+    el.textContent = visible ? w.I18N.t('lobby.onlineCount', { n: S.onlineCount }) : '';
   }
 
   function joinRoom(code, token, role, name) {

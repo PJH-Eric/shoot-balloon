@@ -88,6 +88,11 @@ async function main() {
     P.send('lobby:subscribe');
     await P.until(() => P.rooms && P.rooms.rooms.some((r) => r.code === code));
     ok(P.rooms.rooms.some((r) => r.code === code && r.name === '測試攤位'), '大廳列表看得到公開房間');
+    eq(P.rooms.online, 3, '在線人數包含房間內的玩家');
+    const countProbe = await helloed('人數測試');
+    ok(await P.until(() => P.rooms.online === 4), '新連線更新在線人數');
+    countProbe.socket.disconnect();
+    ok(await P.until(() => P.rooms.online === 3), '斷線更新在線人數');
 
     const jP = await P.ask('room:join', { code, name: '乙乙' });
     ok(jP.ok && jP.role === 'player' && jP.name === '乙乙', '玩家加入，回傳最終暱稱');
