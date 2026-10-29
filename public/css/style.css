@@ -466,6 +466,8 @@ kbd.key {
   .hud-sidebtn { display: none; }
   .livebar { display: flex; }
   .side-sum { max-height: 50%; }
+  /* 右上角固定的語言／設定按鈕會蓋住收起鈕，標題列往下讓開 */
+  .side-head { padding-top: calc(66px + var(--safe-t)); }
 }
 /* 窄版：浮層底部留出左下浮動開關的位置，避免蓋住按鈕 */
 @media (max-width: 899px), (max-aspect-ratio: 1/1) {
