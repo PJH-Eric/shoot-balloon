@@ -121,7 +121,8 @@
           if (!sloppy) continue;
           mistaken = true;
         }
-        var value = t.side === 'avoid' ? 12 : Math.max(1, Rules.hitUnit(b.type));
+        /* 福袋是賭運氣（期望值小正）、Boss 全場都在打，電腦也要跟上 */
+        var value = t.side === 'avoid' ? 12 : (t.lucky ? 24 : (t.boss ? 34 : Math.max(1, Rules.hitUnit(b.type))));
         var weighted = Math.pow(value, 0.35 + L.valueBias * 1.15);
         var urgency = 1 + Math.max(0, 1 - (b.expireAt - now) / 2200) * 0.8;
         var score = weighted * urgency * (0.75 + rng() * 0.5);

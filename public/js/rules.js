@@ -52,6 +52,12 @@
   var COMBO_MAX_BONUS = 0.50;
   var BUFF_MS = 6000;
   var MAX_PLAYERS = 5;
+  /* Boss 氣球：一局一顆，後段登場，全場一起打；擊破後依貢獻度分獎勵池 */
+  var BOSS_AT = 0.58;          // 登場時間（佔一局的比例）
+  var BOSS_POOL = 200;         // 擊破獎勵池，依每人打中的下數按比例分
+  var BOSS_LAST_BONUS = 30;    // 補最後一下的人額外加
+  var BOSS_UP_MS = 14000;
+  var BURST_MS = 450;          // 分身小氣球從爆開點散開的時間
 
   /* ---------------------------------------------------------- 氣球圖鑑 */
   /*
@@ -99,6 +105,26 @@
       upMs: 3300, size: 0.85, amp: 0.06, period: 1300, w: [0, 2, 4],
       hint: '全場最高分，一下子就飄走了。'
     },
+    split: {
+      key: 'split', side: 'pop', label: '分身氣球', points: 35, hp: 1, splitInto: 3,
+      upMs: 6200, size: 1.05, amp: 0.04, period: 2000, w: [0, 8, 9],
+      hint: '射破後會分裂成 3 顆小氣球，趁機連射。'
+    },
+    mini: {
+      key: 'mini', side: 'pop', label: '小分身氣球', points: 15, hp: 1, child: true,
+      upMs: 3800, size: 0.62, amp: 0.04, period: 1200, w: [0, 0, 0],
+      hint: '分身氣球射破後散出來的小氣球，很快就會飄走。'
+    },
+    lucky: {
+      key: 'lucky', side: 'lucky', label: '幸運福袋氣球', points: 0, hp: 1, lucky: true,
+      upMs: 6000, size: 1.0, amp: 0.045, period: 1800, w: [0, 5, 7],
+      hint: '打開才知道：可能加分，也可能扣分。'
+    },
+    boss: {
+      key: 'boss', side: 'pop', label: 'Boss 氣球', points: 72, hp: 12, boss: true,
+      upMs: BOSS_UP_MS, size: 2.3, amp: 0.015, period: 3600, w: [0, 0, 0],
+      hint: '一局只出現一顆的超大氣球，全場一起打，擊破後依貢獻度分獎勵。'
+    },
     dove: {
       key: 'dove', side: 'avoid', label: '白鴿氣球', points: -15, hp: 1,
       upMs: 7000, size: 1.0, amp: 0.03, period: 2400, w: [18, 11, 8],
@@ -116,9 +142,11 @@
     }
   };
 
-  var ORDER = ['red', 'yellow', 'twin', 'star', 'rainbow', 'jumbo', 'golden', 'dove', 'lantern', 'bomb'];
-  var POP_TYPES = ORDER.filter(function (k) { return TYPES[k].side === 'pop'; });
+  var ORDER = ['red', 'yellow', 'twin', 'star', 'rainbow', 'jumbo', 'golden', 'split', 'mini', 'lucky', 'boss', 'dove', 'lantern', 'bomb'];
+  /* 圖鑑分類：小分身是分身氣球的附屬品，不另外列在圖鑑 */
+  var POP_TYPES = ORDER.filter(function (k) { return TYPES[k].side === 'pop' && !TYPES[k].child; });
   var AVOID_TYPES = ORDER.filter(function (k) { return TYPES[k].side === 'avoid'; });
+  var LUCKY_TYPES = ORDER.filter(function (k) { return TYPES[k].side === 'lucky'; });
 
   /* ---------------------------------------------------------- 難度與階段 */
   /*
@@ -216,8 +244,9 @@
   function scoreHit(opts) {
     var t = typeOf(opts.type);
     var unit = hitUnit(t.key);
-    var raw = unit + (opts.killed && t.hp > 1 ? unit : 0);
-    if (t.side === 'avoid') return { gain: raw, multiplier: 1, base: raw };
+    var raw = unit + (opts.killed && t.hp > 1 && !t.boss ? unit : 0);
+    if (t.lucky) raw = opts.luck || 0;           // 福袋：由 rollLuck 決定這一發的分數
+    if (raw < 0) return { gain: raw, multiplier: 1, base: raw };
     var mult = comboMultiplier(opts.combo || 0) * (opts.buffed ? 2 : 1);
     return { gain: Math.round(raw * mult), multiplier: mult, base: raw };
   }
@@ -234,9 +263,27 @@
   function balloonPos(b, now) {
     var age = now - b.spawnAt;
     var t = age / b.upMs;
-    var y = Y_START + (Y_END - Y_START) * t;
+    var y0 = b.y0 === undefined ? Y_START : b.y0;       // 小分身從爆開點起飛
+    var y = y0 + (Y_END - y0) * t;
     var x = b.lane + b.amp * Math.sin(b.phase + age * 2 * Math.PI / b.period);
+    if (b.y0 !== undefined) x -= b.amp * Math.sin(b.phase);    // 小分身一開始要正好在爆開點，搖擺從 0 起算
+    if (b.burst) {
+      var k = clamp(age / BURST_MS, 0, 1);
+      x -= b.burst * (1 - (1 - (1 - k) * (1 - k)));      // 由爆開點緩出散開
+    }
     return { x: clamp(x, 0.03, 0.97), y: y, t: t };
+  }
+
+  /**
+   * 幸運福袋這一發的分數：由「種子＋氣球編號」決定，單機、伺服器、重播結果一致，
+   * 而且打開之前沒有任何欄位洩漏結果（AI 也只能憑運氣）。
+   */
+  function rollLuck(seed, id) {
+    var r = RNG.createRng('luck:' + seed + ':' + id);
+    var good = r() < 0.56;
+    var pick = r();
+    if (good) return pick < 0.5 ? 40 : (pick < 0.85 ? 70 : 110);
+    return pick < 0.6 ? -20 : -40;
   }
 
   /** 氣球現在看得到嗎（至少有一部分在舞台內） */
@@ -268,6 +315,10 @@
       combo: 0,
       bestCombo: 0,
       buffUntil: 0,
+      bossHits: 0,      // 打中 Boss 的下數
+      bossKills: 0,     // 補到 Boss 最後一下的次數
+      luckyGood: 0,     // 福袋開出加分的次數
+      luckyBad: 0,      // 福袋開出扣分的次數
       byType: byType
     };
   }
@@ -304,6 +355,8 @@
       balloons: [],
       nextId: 1,
       nextSpawnAt: now + countdownMs + 300,
+      bossAt: now + countdownMs + Math.round(roundMs * BOSS_AT),
+      bossState: 'none',      // none → live → killed | escaped
       spawned: 0,
       escaped: 0,
       pausedAt: 0,
@@ -365,6 +418,7 @@
       if (now >= b.expireAt) {
         state.balloons.splice(i, 1);
         state.escaped += 1;
+        if (b.type === 'boss') state.bossState = 'escaped';
         events.push({ k: 'escape', id: b.id, type: b.type, side: typeOf(b.type).side });
       }
     }
@@ -385,7 +439,7 @@
       var gap = st.spawnMs + Math.round((rand() * 2 - 1) * st.jitter);
       state.nextSpawnAt += Math.max(220, gap);
 
-      if (state.balloons.length >= st.maxUp) continue;
+      if (regularCount(state) >= st.maxUp) continue;
 
       var key = pickType(st.no, rand);
       var t = typeOf(key);
@@ -410,7 +464,33 @@
       state.spawned += 1;
       events.push({ k: 'spawn', balloon: balloon });
     }
+
+    /* Boss：後段登場一次，血量跟著人數走（人愈多愈厚） */
+    if (state.bossState === 'none' && now >= state.bossAt) {
+      state.bossState = 'live';
+      var bt = TYPES.boss;
+      var bhp = 10 + 3 * Math.max(0, state.order.length - 1);
+      var bup = Math.round(BOSS_UP_MS * paceOf(state.pace).upScale);
+      var boss = {
+        id: state.nextId++, type: 'boss', side: 'pop', hp: bhp, hpLeft: bhp,
+        lane: 0.34 + rand() * 0.32, amp: bt.amp, period: bt.period, phase: rand() * Math.PI * 2,
+        size: bt.size, spawnAt: now, upMs: bup, expireAt: now + bup, stage: 3, contrib: {}
+      };
+      state.balloons.push(boss);
+      state.spawned += 1;
+      events.push({ k: 'spawn', balloon: boss });
+    }
     return events;
+  }
+
+  /* 圖鑑外的附屬氣球（小分身）與 Boss 不佔「同時在場」名額 */
+  function regularCount(state) {
+    var n = 0;
+    for (var i = 0; i < state.balloons.length; i++) {
+      var t = typeOf(state.balloons[i].type);
+      if (!t.child && !t.boss) n += 1;
+    }
+    return n;
   }
 
   /** 失敗結果：error 是中文原文，key 讓前端翻成目前語言（字典 srv.r.*） */
@@ -444,46 +524,100 @@
     var pos = balloonPos(b, now);
     b.hpLeft -= 1;
     var killed = b.hpLeft <= 0;
-    var buffed = t.side === 'pop' && now < p.buffUntil;
+    var luck = t.lucky ? rollLuck(state.seed, b.id) : 0;
+    var buffed = (t.side === 'pop' || luck > 0) && now < p.buffUntil;
 
-    var sc = scoreHit({ type: b.type, combo: p.combo, killed: killed, buffed: buffed });
+    var sc = scoreHit({ type: b.type, combo: p.combo, killed: killed, buffed: buffed, luck: luck });
+    var good = sc.gain > 0;
     p.score += sc.gain;
     p.byType[b.type] = (p.byType[b.type] || 0) + 1;
 
-    if (t.side === 'pop') {
+    if (good) {
       p.hits += 1;
       p.combo += 1;
       if (p.combo > p.bestCombo) p.bestCombo = p.combo;
       if (t.buff && killed) p.buffUntil = now + BUFF_MS;
+      if (t.lucky) p.luckyGood += 1;
     } else {
       p.badHits += 1;
       p.combo = 0;
+      if (t.lucky) p.luckyBad += 1;
+    }
+
+    var extra = [];
+    var bossReward = null;
+
+    if (t.boss) {
+      b.contrib = b.contrib || {};
+      b.contrib[p.id] = (b.contrib[p.id] || 0) + 1;
+      p.bossHits += 1;
     }
 
     if (killed) {
       var idx = state.balloons.indexOf(b);
       if (idx >= 0) state.balloons.splice(idx, 1);
+
+      if (t.splitInto) extra = spawnSplit(state, b, pos, now);
+
+      if (t.boss) {
+        state.bossState = 'killed';
+        p.bossKills += 1;
+        var total = 0, cid;
+        for (cid in b.contrib) total += b.contrib[cid];
+        bossReward = [];
+        for (cid in b.contrib) {
+          var share = total ? Math.round(BOSS_POOL * b.contrib[cid] / total) : 0;
+          if (cid === p.id) share += BOSS_LAST_BONUS;
+          if (state.players[cid]) state.players[cid].score += share;
+          bossReward.push({ id: cid, gain: share, hits: b.contrib[cid] });
+        }
+      }
     }
 
-    return {
-      ok: true,
-      event: {
-        k: 'hit',
-        by: p.id,
-        id: b.id,
-        type: b.type,
-        side: t.side,
-        x: pos.x, y: pos.y,
-        gain: sc.gain,
-        multiplier: sc.multiplier,
-        buffed: buffed,
-        killed: killed,
-        hpLeft: Math.max(0, b.hpLeft),
-        combo: p.combo,
-        score: p.score,
-        buffUntil: p.buffUntil
-      }
+    var event = {
+      k: 'hit',
+      by: p.id,
+      id: b.id,
+      type: b.type,
+      side: t.side,
+      x: pos.x, y: pos.y,
+      gain: sc.gain,
+      bad: !good,
+      multiplier: sc.multiplier,
+      buffed: buffed,
+      killed: killed,
+      hpLeft: Math.max(0, b.hpLeft),
+      combo: p.combo,
+      score: p.score,
+      buffUntil: p.buffUntil
     };
+    if (t.lucky) event.luck = luck;
+    if (bossReward) event.bossReward = bossReward;
+    return { ok: true, event: event, extra: extra };
+  }
+
+  /** 分身氣球破掉：在爆開點生出小氣球。位置與相位只靠種子，所有端算出來都一樣。 */
+  function spawnSplit(state, b, pos, now) {
+    var t = typeOf(b.type), mt = TYPES.mini;
+    var r = RNG.createRng('split:' + state.seed + ':' + b.id);
+    var out = [];
+    var n = t.splitInto || 3;
+    var frac = clamp((pos.y - Y_END) / (Y_START - Y_END), 0.15, 1);
+    var up = Math.max(1500, Math.round(mt.upMs * frac * paceOf(state.pace).upScale));
+    for (var i = 0; i < n; i++) {
+      var off = (i - (n - 1) / 2) * 0.1;
+      var lane = clamp(pos.x + off, 0.08, 0.92);
+      var child = {
+        id: state.nextId++, type: 'mini', side: 'pop', hp: mt.hp, hpLeft: mt.hp,
+        lane: lane, amp: mt.amp, period: mt.period, phase: r() * Math.PI * 2, size: mt.size,
+        spawnAt: now, upMs: up, expireAt: now + up, stage: b.stage || 1,
+        y0: pos.y, burst: lane - pos.x
+      };
+      state.balloons.push(child);
+      state.spawned += 1;
+      out.push({ k: 'spawn', balloon: child });
+    }
+    return out;
   }
 
   /* 暫停／恢復（單機）：把所有時間戳往後推，氣球位置是時間的函式，所以不會跳 */
@@ -496,7 +630,7 @@
     if (!state.pausedAt) return false;
     var d = Math.max(0, now - state.pausedAt);
     state.pausedAt = 0;
-    state.startAt += d; state.endAt += d; state.nextSpawnAt += d;
+    state.startAt += d; state.endAt += d; state.nextSpawnAt += d; state.bossAt += d;
     for (var i = 0; i < state.balloons.length; i++) {
       state.balloons[i].spawnAt += d;
       state.balloons[i].expireAt += d;
@@ -540,7 +674,8 @@
         rank: rank, id: p.id, name: p.name, color: p.color, ai: p.ai, nameIdx: p.nameIdx,
         score: p.score, hits: p.hits, badHits: p.badHits, shots: p.shots,
         combo: p.combo, bestCombo: p.bestCombo, accuracy: accuracyOf(p),
-        buffUntil: p.buffUntil, byType: p.byType
+        buffUntil: p.buffUntil, byType: p.byType,
+        bossHits: p.bossHits, bossKills: p.bossKills, luckyGood: p.luckyGood, luckyBad: p.luckyBad
       });
     }
     return out;
@@ -563,11 +698,12 @@
         return {
           id: b.id, type: b.type, side: b.side, hp: b.hp, hpLeft: b.hpLeft,
           lane: b.lane, amp: b.amp, period: b.period, phase: b.phase, size: b.size,
-          spawnAt: b.spawnAt, upMs: b.upMs, expireAt: b.expireAt
+          spawnAt: b.spawnAt, upMs: b.upMs, expireAt: b.expireAt,
+          y0: b.y0, burst: b.burst
         };
       }),
       standings: standings(state),
-      spawned: state.spawned, escaped: state.escaped,
+      spawned: state.spawned, escaped: state.escaped, bossState: state.bossState,
       over: state.over, winner: state.winner, draw: state.draw
     };
   }
@@ -576,6 +712,7 @@
     var who = nameOf ? nameOf(ev.by) : '有人';
     if (ev.k === 'hit') {
       var t = typeOf(ev.type);
+      if (t.lucky) return who + ' 打開了福袋，' + (ev.gain > 0 ? '+' : '') + ev.gain + ' 分';
       if (t.side === 'avoid') return who + ' 誤射了' + t.label + '，' + ev.gain + ' 分！';
       if (!ev.killed) return who + ' 射中' + t.label + '（還要 ' + ev.hpLeft + ' 下）+' + ev.gain;
       return who + ' 射破' + t.label + ' +' + ev.gain + (ev.combo >= COMBO_STEP ? '（' + ev.combo + ' 連擊）' : '');
@@ -592,7 +729,8 @@
     Y_START: Y_START, Y_END: Y_END, GRACE_MS: GRACE_MS,
     COMBO_STEP: COMBO_STEP, COMBO_BONUS: COMBO_BONUS, COMBO_MAX_BONUS: COMBO_MAX_BONUS,
     BUFF_MS: BUFF_MS, MAX_PLAYERS: MAX_PLAYERS,
-    TYPES: TYPES, ORDER: ORDER, POP_TYPES: POP_TYPES, AVOID_TYPES: AVOID_TYPES,
+    BOSS_AT: BOSS_AT, BOSS_POOL: BOSS_POOL, BOSS_LAST_BONUS: BOSS_LAST_BONUS,
+    TYPES: TYPES, ORDER: ORDER, POP_TYPES: POP_TYPES, AVOID_TYPES: AVOID_TYPES, LUCKY_TYPES: LUCKY_TYPES,
     PACES: PACES, PACE_ORDER: PACE_ORDER, DEFAULT_PACE: DEFAULT_PACE, paceOf: paceOf,
     STAGES: STAGES, scaleStage: scaleStage,
     PLAYER_COLORS: PLAYER_COLORS, PLAYER_COLOR_HEX: PLAYER_COLOR_HEX,
@@ -600,7 +738,7 @@
     typeOf: typeOf, stageAt: stageAt, weightsFor: weightsFor, pickType: pickType,
     comboMultiplier: comboMultiplier, hitUnit: hitUnit, scoreHit: scoreHit,
     describeType: describeType, describeEvent: describeEvent,
-    balloonPos: balloonPos, onStage: onStage, accuracyOf: accuracyOf,
+    balloonPos: balloonPos, onStage: onStage, accuracyOf: accuracyOf, rollLuck: rollLuck,
 
     createMatch: createMatch, tick: tick, shoot: shoot, finish: finish,
     pause: pause, resume: resume,

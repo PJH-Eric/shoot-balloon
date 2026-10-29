@@ -350,7 +350,7 @@ io.on('connection', (socket) => {
     const t = now();
     const res = room.shoot(socket.data.clientId, { balloonId: Number(p.balloonId) || null, x: Number(p.x), y: Number(p.y) }, t);
     if (!res.ok) return fail(socket, res.error, res.code, res.key, res.params);
-    for (const s of socketsOf(room.code)) s.emit('room:events', { t, events: [res.event] });
+    for (const s of socketsOf(room.code)) s.emit('room:events', { t, events: [res.event].concat(res.extra || []) });
   }));
 
   socket.on('room:rematch', withRoom((room) => {

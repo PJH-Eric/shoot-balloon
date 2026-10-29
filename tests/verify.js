@@ -52,12 +52,14 @@ function fresh(players, o) {
 /* ============================================================ 圖鑑 */
 group('氣球圖鑑');
 
-eq(Rules.ORDER.length, 10, '共 10 種氣球');
-eq(Rules.POP_TYPES.length, 7, '要射的 7 種');
+eq(Rules.ORDER.length, 14, '共 14 種氣球（含小分身、福袋、Boss）');
+eq(Rules.POP_TYPES.length, 9, '圖鑑要射的 9 種（含分身與 Boss，小分身不另列）');
+eq(Rules.LUCKY_TYPES.length, 1, '福袋 1 種');
 eq(Rules.AVOID_TYPES.length, 3, '不能射的 3 種');
 ok(Rules.POP_TYPES.every((k) => Rules.typeOf(k).points > 0), '要射的分數都是正的');
+ok(Rules.typeOf('mini').points > 0 && Rules.typeOf('mini').child, '小分身是正分的附屬氣球');
 ok(Rules.AVOID_TYPES.every((k) => Rules.typeOf(k).points < 0), '不能射的分數都是負的');
-eq(new Set(Rules.ORDER.map((k) => Rules.typeOf(k).points)).size, 10, '10 種分數各不相同');
+eq(new Set(Rules.ORDER.map((k) => Rules.typeOf(k).points)).size, 14, '14 種分數各不相同');
 ok(Rules.ORDER.every((k) => Rules.typeOf(k).label && Rules.typeOf(k).hint), '每種都有名字與說明');
 ok(Rules.ORDER.some((k) => Rules.typeOf(k).hp > 1), '有需要射多下的氣球');
 for (let s = 1; s <= 3; s++) {
@@ -259,7 +261,7 @@ function runMatch(seed, players, until) {
   const st = Rules.createMatch({ seed: 'CAP', now: T0, countdownMs: 0, roundMs: 60000, players: [{ id: 'a', name: 'A' }], pace: 'rookie' });
   const rng = RNG.createRng('cap');
   let peak = 0;
-  for (let t = T0; t < T0 + 60000; t += 50) { Rules.tick(st, t, rng); peak = Math.max(peak, st.balloons.length); }
+  for (let t = T0; t < T0 + 60000; t += 50) { Rules.tick(st, t, rng); peak = Math.max(peak, st.balloons.filter((b) => !Rules.typeOf(b.type).child && !Rules.typeOf(b.type).boss).length); }
   ok(peak <= Rules.scaleStage(Rules.STAGES[2], 'rookie').maxUp, '同時在場不超過階段上限', 'peak=' + peak);
 
   /* 倒數期間不冒氣球 */
@@ -350,7 +352,7 @@ for (const lv of AI.ORDER) {
   const runs = [1, 2, 3, 4, 5, 6].map((i) => aiRun(lv, 'S' + i));
   avg[lv] = {
     score: runs.reduce((s, r) => s + r.p.score, 0) / runs.length,
-    bad: runs.reduce((s, r) => s + r.p.badHits, 0) / runs.length,
+    bad: runs.reduce((s, r) => s + ['dove', 'lantern', 'bomb'].reduce((n, k) => n + (r.p.byType[k] || 0), 0), 0) / runs.length,
     shots: runs.reduce((s, r) => s + r.p.shots, 0) / runs.length,
     acc: runs.reduce((s, r) => s + Rules.accuracyOf(r.p), 0) / runs.length
   };
@@ -359,7 +361,7 @@ for (const lv of AI.ORDER) {
 }
 ok(avg.rookie.score < avg.easy.score && avg.easy.score < avg.normal.score && avg.normal.score < avg.hard.score,
   '難度愈高分數愈高', JSON.stringify(Object.keys(avg).map((k) => Math.round(avg[k].score))));
-ok(avg.rookie.bad > avg.hard.bad, '新手誤射比困難多', 'rookie=' + avg.rookie.bad + ' hard=' + avg.hard.bad);
+ok(avg.rookie.bad / avg.rookie.shots > avg.hard.bad / avg.hard.shots, '新手誤射率比困難高（只算白鴿／天燈／炸彈）', 'rookie=' + (avg.rookie.bad / avg.rookie.shots).toFixed(3) + ' hard=' + (avg.hard.bad / avg.hard.shots).toFixed(3));
 ok(avg.rookie.acc < avg.hard.acc, '困難命中率比新手高', 'rookie=' + avg.rookie.acc.toFixed(2) + ' hard=' + avg.hard.acc.toFixed(2));
 ok(avg.hard.shots > avg.rookie.shots, '困難出手比新手快（出手次數較多）');
 console.log('   各難度平均（60 秒、單獨射）：' + AI.ORDER.map((k) => AI.levelOf(k).label + ' ' + Math.round(avg[k].score)).join('／'));
@@ -611,6 +613,114 @@ group('server URL 設定解析');
   eq(r('not a url', '', 'https:', 'https://x').status, 'invalid', '格式不對被擋下');
   ok(Config.inviteUrl('ABCDE', 'tok').indexOf('room=ABCDE') > 0, '邀請連結帶房號');
   ok(!/localhost|onrender/.test(require('fs').readFileSync(require('path').join(__dirname, '../public/js/config.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')), 'config.js 沒有寫死任何網域');
+}
+
+/* ============================================================ 分身／福袋／Boss */
+group('分身氣球');
+{
+  const st = fresh([{ id: 'a', name: 'A' }]);
+  const sp = addBalloon(st, 'split', T0, { lane: 0.5, upMs: 8000, expireAt: T0 + 8000 });
+  const res = Rules.shoot(st, 'a', { balloonId: sp.id }, T0 + 2000);
+  ok(res.ok && res.event.killed, '分身氣球一下就破');
+  eq(res.event.gain, 35, '分身氣球 +35');
+  eq(res.extra.length, 3, '射破後生出 3 顆小氣球');
+  ok(res.extra.every((e) => e.k === 'spawn' && e.balloon.type === 'mini'), '附屬的都是小分身');
+  eq(st.balloons.length, 3, '天上只剩 3 顆小分身');
+  const ys = res.extra.map((e) => e.balloon.y0);
+  ok(ys.every((y) => y === res.event.y), '小分身從爆開點起飛', JSON.stringify(ys) + ' vs ' + res.event.y);
+  const xs0 = res.extra.map((e) => Rules.balloonPos(e.balloon, T0 + 2000).x);
+  near(xs0[0], res.event.x, 0.002, '剛爆開時還在原位');
+  const xs1 = res.extra.map((e) => Rules.balloonPos(e.balloon, T0 + 3000).x);
+  ok(xs1[2] - xs1[0] > 0.08, '爆開後左右兩顆散開', JSON.stringify(xs1));
+  const extraJson = JSON.stringify(res.extra);
+  const again = Rules.shoot(st, 'a', { balloonId: res.extra[0].balloon.id }, T0 + 2700);
+  eq(again.event.gain, 15, '小分身 +15');
+  eq(again.extra.length, 0, '小分身不會再分裂');
+  /* 同種子同結果 */
+  const st2 = fresh([{ id: 'a', name: 'A' }]);
+  const sp2 = addBalloon(st2, 'split', T0, { lane: 0.5, upMs: 8000, expireAt: T0 + 8000 });
+  const res2 = Rules.shoot(st2, 'a', { balloonId: sp2.id }, T0 + 2000);
+  eq(JSON.stringify(res2.extra), extraJson, '小分身只靠種子，可重現');
+}
+
+group('幸運福袋氣球');
+{
+  const seen = { good: 0, bad: 0 };
+  const vals = new Set();
+  for (let i = 1; i <= 400; i++) { const v = Rules.rollLuck('LUCKYSEED', i); vals.add(v); if (v > 0) seen.good++; else seen.bad++; }
+  ok(seen.good > 0 && seen.bad > 0, '福袋有加分也有扣分', JSON.stringify(seen));
+  ok([...vals].every((v) => [40, 70, 110, -20, -40].includes(v)), '福袋只開得出固定幾種分數', [...vals].join());
+  ok(seen.good > seen.bad, '福袋期望值略偏正', JSON.stringify(seen));
+  eq(Rules.rollLuck('S', 7), Rules.rollLuck('S', 7), '同一顆福袋結果固定');
+  const st = fresh([{ id: 'a', name: 'A' }]);
+  let goodSeen = false, badSeen = false;
+  for (let i = 0; i < 60 && !(goodSeen && badSeen); i++) {
+    const b = addBalloon(st, 'lucky', T0, { upMs: 8000, expireAt: T0 + 8000 });
+    const before = st.players.a.score, combo = st.players.a.combo;
+    const r = Rules.shoot(st, 'a', { balloonId: b.id }, T0 + 1000);
+    eq(r.event.gain, st.players.a.score - before, '福袋分數與事件一致');
+    if (r.event.gain > 0) { goodSeen = true; eq(st.players.a.combo, combo + 1, '福袋加分算連擊'); ok(!r.event.bad, '加分福袋不算誤射'); }
+    else { badSeen = true; eq(st.players.a.combo, 0, '福袋扣分連擊歸零'); ok(r.event.bad, '扣分福袋算誤射'); }
+  }
+  ok(goodSeen && badSeen, '60 顆福袋裡兩種結果都出現');
+  const flat = Rules.scoreHit({ type: 'lucky', combo: 99, buffed: true, luck: -40 });
+  eq(flat.gain, -40, '福袋扣分不吃連擊與加倍');
+  eq(Rules.scoreHit({ type: 'lucky', combo: 0, luck: 70 }).gain, 70, '福袋加分 +70');
+}
+
+group('Boss 氣球');
+{
+  const st = fresh([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }]);
+  const rng = RNG.createRng('boss');
+  let bossEv = null;
+  for (let t = T0; t < T0 + 61000 && !bossEv; t += 50) {
+    const evs = Rules.tick(st, t, rng);
+    bossEv = evs.find((e) => e.k === 'spawn' && e.balloon.type === 'boss') || null;
+    if (bossEv) bossEv.t = t;
+  }
+  ok(!!bossEv, '一局裡 Boss 會登場');
+  ok(bossEv && bossEv.t - T0 >= 60000 * Rules.BOSS_AT - 100, 'Boss 在後段才登場', 't=' + (bossEv && bossEv.t - T0));
+  eq(bossEv.balloon.hp, 13, '2 人的 Boss 血量 13');
+  eq(Rules.snapshot(st, bossEv.t).bossState, 'live', '快照看得到 Boss 在場');
+  let bossCount = 0;
+  for (let t = bossEv.t; t < T0 + 60000; t += 50) {
+    const evs = Rules.tick(st, t, rng);
+    bossCount += evs.filter((e) => e.k === 'spawn' && e.balloon.type === 'boss').length;
+  }
+  eq(bossCount, 0, 'Boss 一局只出現一次');
+
+  /* 手動打：A 打 8 下、B 打 5 下（B 補最後一下） */
+  const s2 = fresh([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }]);
+  const boss = addBalloon(s2, 'boss', T0, { hp: 13, hpLeft: 13, upMs: 14000, expireAt: T0 + 14000, contrib: {} });
+  s2.bossState = 'live';
+  let last = null;
+  for (let i = 0; i < 8; i++) last = Rules.shoot(s2, 'a', { balloonId: boss.id }, T0 + 1000 + i * 10);
+  ok(!last.event.killed, 'Boss 不是一兩下打得死');
+  for (let i = 0; i < 5; i++) last = Rules.shoot(s2, 'b', { balloonId: boss.id }, T0 + 2000 + i * 10);
+  ok(last.event.killed, '打滿血量就擊破');
+  eq(s2.bossState, 'killed', '狀態變成已擊破');
+  const rw = {}; last.event.bossReward.forEach((r) => { rw[r.id] = r.gain; });
+  eq(rw.a, Math.round(Rules.BOSS_POOL * 8 / 13), '貢獻 8 下的 A 依比例拿獎勵');
+  eq(rw.b, Math.round(Rules.BOSS_POOL * 5 / 13) + Rules.BOSS_LAST_BONUS, '補最後一下的 B 多拿加成');
+  eq(last.event.score, s2.players.b.score, '事件上的分數已包含獎勵');
+  eq(s2.players.b.bossKills, 1, '記下 B 擊破 Boss 一次');
+  eq(s2.players.a.bossHits, 8, '記下 A 打了 8 下');
+  eq(s2.balloons.length, 0, '擊破後天空清空');
+  /* 沒打死、飄走 */
+  const s3 = fresh([{ id: 'a', name: 'A' }]);
+  addBalloon(s3, 'boss', T0, { hp: 10, hpLeft: 10, upMs: 4000, expireAt: T0 + 4000, contrib: {} });
+  s3.bossState = 'live'; s3.bossAt = T0 + 999999;
+  Rules.tick(s3, T0 + 4500, RNG.createRng('x'));
+  eq(s3.bossState, 'escaped', 'Boss 飄走就算逃走');
+  /* 暫停會順延登場時間 */
+  const s4 = fresh([{ id: 'a', name: 'A' }]);
+  const at0 = s4.bossAt;
+  Rules.pause(s4, T0 + 1000); Rules.resume(s4, T0 + 6000);
+  eq(s4.bossAt, at0 + 5000, '暫停會順延 Boss 登場時間');
+  /* 小分身與 Boss 不佔同時在場名額 */
+  const s5 = fresh([{ id: 'a', name: 'A' }]);
+  addBalloon(s5, 'boss', T0, {}); addBalloon(s5, 'mini', T0, {});
+  eq(Rules.snapshot(s5, T0).balloons.length, 2, '快照包含 Boss 與小分身');
 }
 
 console.log('\n══════════ 結果 ══════════');
