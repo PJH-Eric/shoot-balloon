@@ -152,7 +152,7 @@ async function main() {
     group('純文字教學：上一步／下一步／跳過／立即練習');
     await p.click('#b-solo'); await sleep(150);
     await p.click('#b-solo-tutorial'); await sleep(200);
-    eq(await p.evaluate(() => document.getElementById('tut-progress').textContent), '第 1 步，共 7 步', '教學顯示目前進度');
+    eq(await p.evaluate(() => document.getElementById('tut-progress').textContent), '第 1 步，共 8 步', '教學顯示目前進度');
     ok(await p.evaluate(() => document.getElementById('b-tut-prev').disabled), '第一步沒有上一步');
     await p.click('#b-tut-next'); await p.click('#b-tut-next');
     eq(await p.evaluate(() => document.getElementById('tut-head').textContent), '要射的氣球', '教學內容隨步驟更新');
@@ -162,7 +162,7 @@ async function main() {
     ok(await p.evaluate(() => document.getElementById('tutorial-modal').hidden), '跳過關閉教學');
     ok(await p.evaluate(() => !document.getElementById('tutorial-modal').querySelector('img, video, canvas')), '教學只有文字，沒有圖片／影片');
     await p.click('#b-solo-tutorial'); await sleep(150);
-    for (let i = 0; i < 6; i++) await p.click('#b-tut-next');
+    for (let i = 0; i < 7; i++) await p.click('#b-tut-next');
     eq(await p.evaluate(() => document.getElementById('b-tut-next').textContent.trim()), '立即練習', '最後一步是「立即練習」');
     await p.click('#b-tut-next');
     await p.waitForFunction(() => window.SB.S.mode === 'solo' && window.SB.S.screen === 's-game', null, { timeout: 4000 });
@@ -330,7 +330,8 @@ async function main() {
     await L.focus('#s-help .sa-view'); await L.keyboard.press('Home');
     await L.waitForFunction(() => document.querySelector('#s-help .sa-view').scrollTop <= 3, null, { timeout: 3000 }).catch(() => {});
     ok(await L.evaluate(() => document.querySelector('#s-help .sa-view').scrollTop <= 3), '鍵盤 Home 捲回頂端（等捲動動畫結束）');
-    await L.keyboard.press('End'); await sleep(150);
+    await sleep(400); await L.keyboard.press('End');
+    await L.waitForFunction(() => document.querySelector('#s-help .sa-view').scrollTop > 100, null, { timeout: 3000 }).catch(() => {});
     ok(await L.evaluate(() => { const v = document.querySelector('#s-help .sa-view'); return v.scrollTop > 100; }), '鍵盤 End 可以捲動');
     const thumbMoved = await L.evaluate(() => document.querySelector('#s-help .sa-y .sa-thumb').style.transform);
     ok(/translateY\((?!0px)/.test(thumbMoved), '捲動時滑塊位置跟著更新', thumbMoved);
