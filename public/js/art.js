@@ -113,6 +113,46 @@
         + '<path d="M50 28l5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1z" fill="#FFF1D6" stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round"/>';
     },
 
+    /* 分身氣球：天藍色，肚子上有一個 Y 形的虛線縫，暗示會裂成三顆 */
+    split: function () {
+      return string('#CFEBFF') + shape('#59B7FF') + knot('#59B7FF')
+        + '<path d="M50 94V58M50 58L24 32M50 58L76 32" fill="none" stroke="' + INK + '" stroke-width="3.6" stroke-linecap="round" stroke-dasharray="7 6"/>'
+        + '<circle cx="50" cy="58" r="6.5" fill="' + CREAM + '" stroke="' + INK + '" stroke-width="3"/>'
+        + shine(28, 34);
+    },
+
+    /* 小分身：同色系的小氣球 */
+    mini: function () {
+      return string('#CFEBFF') + shape('#8FD0FF') + knot('#8FD0FF') + shine();
+    },
+
+    /* 幸運福袋：粉紅氣球、頂上綁金色蝴蝶結、肚子是一個大問號 */
+    lucky: function () {
+      return string('#FFE08A') + shape('#FF8FC8') + knot('#FF8FC8') + shine(24, 34)
+        + '<path d="M50 8C42 -6 28 -2 31 8 34 14 45 11 50 8 55 11 66 14 69 8 72 -2 58 -6 50 8Z" fill="#FFD84A" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>'
+        + '<circle cx="50" cy="8" r="4" fill="#E8A21C" stroke="' + INK + '" stroke-width="2.4"/>'
+        + '<circle cx="50" cy="56" r="21" fill="' + CREAM + '" stroke="' + INK + '" stroke-width="3.4"/>'
+        + '<path d="M41 49c0-7 5-11 10-11s10 4 10 9c0 7-10 8-10 15" fill="none" stroke="' + INK + '" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+        + '<circle cx="51" cy="71" r="3.6" fill="' + INK + '"/>';
+    },
+
+    /* Boss：紫色大氣球，戴金皇冠、生氣的臉；血量愈低裂痕愈多 */
+    boss: function (hpLeft, hpTotal) {
+      var f = hpTotal ? hpLeft / hpTotal : 1;
+      var crack = '';
+      if (f <= 0.66) crack += '<path d="M64 10l-9 13 11 8-9 13" fill="none" stroke="' + INK + '" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>';
+      if (f <= 0.33) crack += '<path d="M22 28l13 9-9 10 13 8M72 62l14 8-6 9" fill="none" stroke="' + INK + '" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>';
+      return string('#D6C2FF') + shape('#7A3FD1') + knot('#7A3FD1') + shine(24, 34)
+        + '<path d="M27 21L31 -3 42 11 50 -7 58 11 69 -3 73 21z" fill="#FFC93C" stroke="' + INK + '" stroke-width="3.6" stroke-linejoin="round"/>'
+        + '<path d="M27 21h46" stroke="' + INK + '" stroke-width="3.6"/>'
+        + '<ellipse cx="36" cy="50" rx="8" ry="9" fill="' + CREAM + '" stroke="' + INK + '" stroke-width="3"/>'
+        + '<ellipse cx="64" cy="50" rx="8" ry="9" fill="' + CREAM + '" stroke="' + INK + '" stroke-width="3"/>'
+        + '<circle cx="38" cy="52" r="3.8" fill="' + INK + '"/><circle cx="62" cy="52" r="3.8" fill="' + INK + '"/>'
+        + '<path d="M24 36L45 45M76 36L55 45" stroke="' + INK + '" stroke-width="5.2" stroke-linecap="round"/>'
+        + '<path d="M32 72l6-7 6 7 6-7 6 7 6-7 6 7" fill="none" stroke="' + INK + '" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
+        + crack;
+    },
+
     /* ---------- 不能射的 ---------- */
 
     /* 白鴿氣球：淡紫白氣球，上面停著一隻白鴿 */
@@ -151,15 +191,15 @@
   };
 
   /** 氣球 sprite 內容（不含 <svg> 外層） */
-  function balloonArt(key, hpLeft) {
+  function balloonArt(key, hpLeft, hpTotal) {
     var fn = ART[key] || ART.red;
-    return fn(hpLeft);
+    return fn(hpLeft, hpTotal);
   }
 
   /** 完整 <svg>，圖鑑、結算等直接用 */
-  function balloonSvg(key, hpLeft, cls) {
+  function balloonSvg(key, hpLeft, cls, hpTotal) {
     return '<svg class="' + (cls || 'bln-svg') + '" viewBox="-6 -10 112 168" aria-hidden="true" focusable="false">'
-      + balloonArt(key, hpLeft) + '</svg>';
+      + balloonArt(key, hpLeft, hpTotal) + '</svg>';
   }
 
   /* ---- 飛鏢（發射特效） ---- */
@@ -207,8 +247,80 @@
     return html;
   }
 
+
+  /* ---- 成就徽章：圓形獎牌 + 圖案；未解鎖是暗色剪影 ---- */
+  var TIER_FILL = { bronze: '#C98A4B', silver: '#D5DCEC', gold: '#FFB73D' };
+  var GLYPH = {
+    crown: '<path d="M26 64L30 38 41 52 50 32 59 52 70 38 74 64z"/><path d="M26 70h48"/>',
+    flame: '<path d="M50 24c5 11 16 15 16 30a16 16 0 0 1-32 0c0-9 4-13 9-18 0 7 4 9 6 9-3-9-3-15 1-21z"/>',
+    bolt: '<path d="M57 22L35 54h13l-5 24 23-34H54z"/>',
+    star: '<path d="M50 24l8 17 18 2-13 13 4 18-17-9-17 9 4-18-13-13 18-2z"/>',
+    stars: '<path d="M38 30l5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1z"/><path d="M64 44l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z"/>',
+    shield: '<path d="M50 24l20 8v16c0 14-9 24-20 30-11-6-20-16-20-30V32z"/><path d="M40 51l8 8 14-16" fill="none"/>',
+    target: '<circle cx="50" cy="50" r="22" fill="none"/><circle cx="50" cy="50" r="11" fill="none"/><circle cx="50" cy="50" r="3.6"/><path d="M50 20v10M50 70v10M20 50h10M70 50h10" fill="none"/>',
+    sparkle: '<path d="M50 20c2 16 10 24 26 30-16 6-24 14-26 30-2-16-10-24-26-30 16-6 24-14 26-30z"/>',
+    split: '<path d="M50 78V54M50 54L32 34M50 54L68 34" fill="none"/><circle cx="50" cy="54" r="5"/><circle cx="30" cy="30" r="8"/><circle cx="70" cy="30" r="8"/><circle cx="50" cy="26" r="6" />',
+    gift: '<rect x="28" y="42" width="44" height="32" rx="3"/><path d="M26 42h48v-8H26zM50 34v40" /><path d="M50 34c-10-12-20-6-14 0M50 34c10-12 20-6 14 0" fill="none"/>',
+    boss: '<ellipse cx="50" cy="56" rx="19" ry="22"/><path d="M34 40L38 22 45 32 50 20 55 32 62 22 66 40z"/>',
+    ticket: '<path d="M26 34h48v10a6 6 0 0 0 0 12v10H26V56a6 6 0 0 0 0-12z"/><path d="M42 34v32" fill="none"/>'
+  };
+  function badge(glyph, tier, earned, cls) {
+    var fill = earned ? (TIER_FILL[tier] || TIER_FILL.bronze) : '#3C3380';
+    var ink = earned ? INK : '#8D83C2';
+    return '<svg class="' + (cls || 'badge-svg') + (earned ? '' : ' locked') + '" viewBox="0 0 100 100" aria-hidden="true" focusable="false">'
+      + '<path d="M34 6h12l4 22H30z" fill="' + (earned ? '#E8483A' : '#4B3F96') + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>'
+      + '<path d="M54 6h12l4 22H50z" fill="' + (earned ? '#FFF1D6' : '#4B3F96') + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>'
+      + '<circle cx="50" cy="60" r="34" fill="' + fill + '" stroke="' + INK + '" stroke-width="4"/>'
+      + '<circle cx="50" cy="60" r="27" fill="none" stroke="' + ink + '" stroke-width="2.4" stroke-dasharray="3 5" opacity=".7"/>'
+      + '<g transform="translate(0 10) scale(1) " fill="' + (earned ? CREAM : '#5A4FA6') + '" stroke="' + ink + '" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round">'
+      + (GLYPH[glyph] || GLYPH.star) + '</g></svg>';
+  }
+
+  /* ---- 攤位場景：遠處摩天輪、遮陽篷與燈泡、吊燈籠；都在氣球後面，不搶戲 ---- */
+  function scene() {
+    var spokes = '';
+    for (var i = 0; i < 8; i++) spokes += '<path d="M60 60L' + (60 + 46 * Math.cos(i * Math.PI / 4)).toFixed(1) + ' ' + (60 + 46 * Math.sin(i * Math.PI / 4)).toFixed(1) + '"/>';
+    var pods = '';
+    for (var j = 0; j < 8; j++) pods += '<circle cx="' + (60 + 46 * Math.cos(j * Math.PI / 4)).toFixed(1) + '" cy="' + (60 + 46 * Math.sin(j * Math.PI / 4)).toFixed(1) + '" r="5" fill="' + (j % 2 ? '#FFB73D' : '#E8483A') + '" stroke="none"/>';
+    var wheel = '<svg class="wheel-svg" viewBox="0 0 120 130" aria-hidden="true" focusable="false">'
+      + '<path d="M60 60L30 128M60 60L90 128M22 128h76" fill="none" stroke="#6C5CC0" stroke-width="3"/>'
+      + '<g class="wheel-rot" fill="none" stroke="#8E7FE0" stroke-width="2.6"><circle cx="60" cy="60" r="46"/><circle cx="60" cy="60" r="4" fill="#8E7FE0"/>' + spokes + pods + '</g></svg>';
+    var lantern = function (cls, hue) {
+      return '<span class="deco-lantern ' + cls + '"><svg viewBox="0 0 40 70" aria-hidden="true" focusable="false">'
+        + '<path d="M20 0v12" stroke="' + CREAM + '" stroke-width="2" opacity=".7"/>'
+        + '<rect x="10" y="10" width="20" height="5" rx="2" fill="' + INK + '"/>'
+        + '<path d="M8 22c0-6 6-8 12-8s12 2 12 8v16c0 6-6 8-12 8s-12-2-12-8z" fill="' + hue + '" stroke="' + INK + '" stroke-width="2.6"/>'
+        + '<path d="M14 18v26M20 16v30M26 18v26" stroke="' + INK + '" stroke-width="1.6" opacity=".45"/>'
+        + '<rect x="12" y="46" width="16" height="4" rx="2" fill="' + INK + '"/>'
+        + '<path d="M16 50v12M20 50v14M24 50v12" stroke="' + hue + '" stroke-width="2.4" stroke-linecap="round"/></svg></span>';
+    };
+    return '<span class="deco-far">' + wheel + '</span>'
+      + '<span class="deco-awning"></span><span class="deco-bulbs"></span>'
+      + lantern('l1', '#E8483A') + lantern('l2', '#FF9A3D');
+  }
+
+  /* ---- 櫃檯上的獎品：熊、疊杯、金魚袋 ---- */
+  function prizes() {
+    var bear = '<svg class="prize-svg" viewBox="0 0 90 60" aria-hidden="true" focusable="false">'
+      + '<g stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round">'
+      + '<circle cx="14" cy="14" r="6" fill="#C98A4B"/><circle cx="34" cy="14" r="6" fill="#C98A4B"/>'
+      + '<circle cx="24" cy="24" r="14" fill="#D9A066"/><ellipse cx="24" cy="29" rx="6" ry="4.4" fill="' + CREAM + '"/>'
+      + '<ellipse cx="24" cy="48" rx="15" ry="12" fill="#D9A066"/></g>'
+      + '<circle cx="19" cy="22" r="1.8" fill="' + INK + '"/><circle cx="29" cy="22" r="1.8" fill="' + INK + '"/><circle cx="24" cy="27.5" r="1.8" fill="' + INK + '"/>'
+      + '<g stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round">'
+      + '<path d="M54 56l3-14h16l3 14z" fill="#59B7FF"/><path d="M57 42l2-12h10l2 12z" fill="#2FC4AE"/><path d="M60 30l1.5-10h7L70 30z" fill="#FFC93C"/></g></svg>';
+    var fish = '<svg class="prize-svg" viewBox="0 0 90 60" aria-hidden="true" focusable="false">'
+      + '<g stroke="' + INK + '" stroke-width="2.6" stroke-linejoin="round">'
+      + '<path d="M14 18h28l-2 36H16z" fill="#BFE8FF" fill-opacity=".6"/><path d="M18 18c0-6 20-6 20 0" fill="none"/>'
+      + '<ellipse cx="27" cy="38" rx="7" ry="5" fill="#FF9A3D"/><path d="M34 38l6-5v10z" fill="#FF9A3D"/>'
+      + '<path d="M58 54V26a14 14 0 0 1 28 0v28z" fill="#E8483A"/><path d="M58 40h28" fill="none"/></g>'
+      + '<circle cx="72" cy="33" r="4" fill="' + CREAM + '"/></svg>';
+    return '<span class="prize prize-l">' + bear + '</span><span class="prize prize-r">' + fish + '</span>';
+  }
+
   w.Art = {
     INK: INK,
+    badge: badge, scene: scene, prizes: prizes,
     balloonArt: balloonArt, balloonSvg: balloonSvg,
     dart: dart, crosshairCursor: crosshairCursor,
     homeArt: homeArt, trophy: trophy, bulbString: bulbString

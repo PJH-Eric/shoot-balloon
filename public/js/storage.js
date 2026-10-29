@@ -17,7 +17,11 @@
     bigTag: 'sb_big_tag',
     roundSec: 'sb_round_sec',
     cursor: 'sb_cursor',
-    sideOpen: 'sb_side_open'
+    sideOpen: 'sb_side_open',
+    records: 'sb_records',
+    totals: 'sb_totals',
+    ach: 'sb_ach',
+    bestPace: 'sb_best_pace'
   };
 
   function get(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
@@ -68,7 +72,62 @@
     return next;
   }
 
+  /* ---- 個人紀錄：最近對局、累計、各難度最高分、成就 ---- */
+  var MAX_RECORDS = 10;
+  var EMPTY_TOTALS = { games: 0, hits: 0, shots: 0, badHits: 0 };
+
+  function records() {
+    var list = getJson(KEY.records, []);
+    return Array.isArray(list) ? list.slice(0, MAX_RECORDS) : [];
+  }
+  function addRecord(rec) {
+    var list = records();
+    list.unshift(rec);
+    setJson(KEY.records, list.slice(0, MAX_RECORDS));
+    return list;
+  }
+  function totals() {
+    var t = getJson(KEY.totals, null);
+    if (!t || typeof t !== 'object') return JSON.parse(JSON.stringify(EMPTY_TOTALS));
+    return { games: Number(t.games) || 0, hits: Number(t.hits) || 0, shots: Number(t.shots) || 0, badHits: Number(t.badHits) || 0 };
+  }
+  function addTotals(row) {
+    var t = totals();
+    t.games += 1; t.hits += row.hits || 0; t.shots += row.shots || 0; t.badHits += row.badHits || 0;
+    setJson(KEY.totals, t);
+    return t;
+  }
+  function bestPace() {
+    var b = getJson(KEY.bestPace, {});
+    return b && typeof b === 'object' ? b : {};
+  }
+  /** 回傳 true＝這是該難度的新最高分（第一次玩不算） */
+  function setBestPace(pace, score) {
+    var b = bestPace();
+    var prev = Number(b[pace]) || 0;
+    if (score > prev) { b[pace] = score; setJson(KEY.bestPace, b); }
+    return prev > 0 && score > prev;
+  }
+  function achievements() {
+    var a = getJson(KEY.ach, {});
+    return a && typeof a === 'object' && !Array.isArray(a) ? a : {};
+  }
+  /** 解鎖一批成就，回傳「這次新解鎖」的 id */
+  function unlock(ids) {
+    var a = achievements(), fresh = [], now = Date.now();
+    ids.forEach(function (id) { if (!a[id]) { a[id] = now; fresh.push(id); } });
+    if (fresh.length) setJson(KEY.ach, a);
+    return fresh;
+  }
+  function clearProgress() {
+    try {
+      [KEY.stats, KEY.best, KEY.records, KEY.totals, KEY.ach, KEY.bestPace].forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) {}
+  }
+
   w.Store = {
+    records: records, addRecord: addRecord, totals: totals, addTotals: addTotals,
+    bestPace: bestPace, setBestPace: setBestPace, achievements: achievements, unlock: unlock, clearProgress: clearProgress,
     KEY: KEY,
     clientId: clientId,
     nick: function (v) { if (v === undefined) return get(KEY.nick, ''); set(KEY.nick, v); return v; },

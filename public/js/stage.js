@@ -24,8 +24,13 @@
 
   var TYPE_COLOR = {
     red: '#E8483A', yellow: '#FFC93C', twin: '#2FC4AE', star: '#A98BFF', rainbow: '#59B7FF',
-    jumbo: '#2FC4AE', golden: '#FFC93C', dove: '#E5DEF5', lantern: '#FF9A3D', bomb: '#3A3158'
+    jumbo: '#2FC4AE', golden: '#FFC93C', dove: '#E5DEF5', lantern: '#FF9A3D', bomb: '#3A3158',
+    split: '#59B7FF', mini: '#8FD0FF', lucky: '#FF8FC8', boss: '#7A3FD1'
   };
+
+  /* 連擊大字（只顯示自己的連擊） */
+  var comboEl = null, comboNum = null, comboMult = null, comboTimer = 0;
+  var COMBO_SHOW_MS = 2600;
 
   /* sprite 的 viewBox 是 -6 -10 112 168：本體中心 (50,52) 對應 sprite 內 (0.5, 0.369) */
   var CY = 0.369;
@@ -45,6 +50,9 @@
 
   function mount(o) {
     field = o.field; layer = o.layer; fx = o.fx; xhair = o.xhair;
+    comboEl = o.combo || null;
+    comboNum = comboEl ? comboEl.querySelector('.cb-n') : null;
+    comboMult = comboEl ? comboEl.querySelector('.cb-mult') : null;
     onShoot = o.onShoot;
     if (o.now) getNow = o.now;
     measure();
@@ -128,6 +136,8 @@
   /* ---------------------------------------------------------- 每幀更新 */
 
   function tagText(t) {
+    if (t.lucky) return '?';
+    if (t.boss) return w.I18N ? w.I18N.t('boss.tag') : 'BOSS';
     return (t.points > 0 ? '+' : '−') + Math.abs(t.points);
   }
 
@@ -152,9 +162,10 @@
       if (!rec) {
         var el = w.document.createElement('div');
         el.className = 'bln side-' + b.side + ' type-' + b.type;
-        el.innerHTML = '<span class="bln-art"></span><span class="bln-tag" aria-hidden="true">' + tagText(t) + '</span>';
+        el.innerHTML = '<span class="bln-art"></span><span class="bln-tag" aria-hidden="true">' + tagText(t) + '</span>'
+          + (t.boss ? '<span class="bln-hp" aria-hidden="true"><i></i></span>' : '');
         layer.appendChild(el);
-        rec = recs[b.id] = { el: el, art: el.firstChild, key: '', hp: -1 };
+        rec = recs[b.id] = { el: el, art: el.firstChild, key: '', hp: -1, bar: t.boss ? el.querySelector('.bln-hp i') : null };
       }
       if (rec.key !== key) {
         rec.key = key;
@@ -163,8 +174,9 @@
       }
       if (rec.hp !== b.hpLeft) {
         rec.hp = b.hpLeft;
-        rec.art.innerHTML = Art.balloonSvg(b.type, b.hpLeft);
+        rec.art.innerHTML = Art.balloonSvg(b.type, b.hpLeft, undefined, b.hp);
         rec.el.classList.toggle('hurt', b.hpLeft < b.hp);
+        if (rec.bar) rec.bar.style.width = (Math.max(0, b.hpLeft) / Math.max(1, b.hp) * 100).toFixed(1) + '%';
       }
       var p = Rules.balloonPos(b, now);
       var x = p.x * W - bw / 2;
@@ -234,6 +246,19 @@
     }
   }
 
+  /* 分數飄字的量級：愈高分字愈大、顏色愈熱（CSS .t1～.t5） */
+  var TIER_PX = [0, 20, 24, 30, 38, 46];
+  function scoreTier(gain) {
+    var g = Math.abs(gain);
+    return g >= 140 ? 5 : (g >= 80 ? 4 : (g >= 40 ? 3 : (g >= 18 ? 2 : 1)));
+  }
+  /* 粗估文字寬度（全形字算 1 個字寬、半形約 0.62），用來把飄字夾在舞台內，窄螢幕才不會被切掉 */
+  function textW(text, px) {
+    var n = 0;
+    for (var i = 0; i < text.length; i++) n += text.charCodeAt(i) > 255 ? 1 : 0.62;
+    return n * px;
+  }
+
   /**
    * 命中／射空的回饋：爆開的碎片 + 浮出分數。
    * @param {object} ev  hit 或 miss 事件
@@ -243,19 +268,31 @@
     if (!fx) return;
     o = o || {};
     limitFx();
-    var cls = 'flyscore', text = '', px, py;
+    var cls = 'flyscore', text = '', px, py, tier = 1;
+    var t = function (key, fb) { return w.I18N ? w.I18N.t(key) : fb; };
 
     if (ev.k === 'hit') {
       px = ev.x * W; py = ev.y * H;
+      var isBoss = ev.type === 'boss';
       var color = TYPE_COLOR[ev.type] || '#FFB73D';
       if (ev.type === 'rainbow') color = ['#E8483A', '#FFD84A', '#5BD49A', '#59B7FF', '#A98BFF'][Math.floor(Math.random() * 5)];
-      burst(px, py, color, ev.killed ? 9 : 4);
-      cls += ev.gain >= 0 ? ' good' : ' bad';
+      tier = isBoss && !ev.killed ? 1 : scoreTier(ev.gain);
+      burst(px, py, color, ev.killed ? (tier >= 4 ? 16 : 9) : 4);
+      if (tier >= 4 && !reduceMotion) {
+        var big = w.document.createElement('i');
+        big.className = 'ring big';
+        big.style.left = px + 'px'; big.style.top = py + 'px';
+        spawnFx(big, 520);
+      }
+      /* Boss 每一下都飄字會洗版：只有自己打的才顯示，而且收小 */
+      if (isBoss && !ev.killed && !o.mine) return;
+      cls += (ev.gain >= 0 ? ' good' : ' bad') + ' t' + tier + (o.mine ? ' mine' : '');
       text = (ev.gain >= 0 ? '+' : '') + ev.gain;
+      if (ev.type === 'lucky') text = t('fx.lucky', '福袋') + ' ' + text;
       if (ev.buffed) text += ' ×2';
       else if (ev.multiplier > 1.001) text += ' ×' + ev.multiplier.toFixed(1);
-      if (!ev.killed) text = (globalThis.I18N ? globalThis.I18N.t("text.232") : "咚！") + text;
-      if (o.mine && ev.side === 'avoid' && !reduceMotion && field) {
+      if (!ev.killed && !isBoss) text = t('fx.thud', '咚！') + text;
+      if (o.mine && ev.bad && !reduceMotion && field) {
         field.classList.remove('shake'); void field.offsetWidth; field.classList.add('shake');
         setTimeout(function () { field.classList.remove('shake'); }, 320);
       }
@@ -264,8 +301,8 @@
       px = (ev.x !== null && ev.x !== undefined && isFinite(ev.x)) ? ev.x * W : null;
       py = (ev.y !== null && ev.y !== undefined && isFinite(ev.y)) ? ev.y * H : null;
       if (px === null || py === null) return;
-      cls += ' miss';
-      text = ev.late ? (globalThis.I18N ? globalThis.I18N.t("text.231") : "慢了一步") : (globalThis.I18N ? globalThis.I18N.t("text.230") : "射空");
+      cls += ' miss t1';
+      text = ev.late ? t('text.231', '慢了一步') : t('text.230', '射空');
       var ring = w.document.createElement('i');
       ring.className = 'ring';
       ring.style.left = px + 'px'; ring.style.top = py + 'px';
@@ -275,13 +312,38 @@
     }
 
     if (o.who) text = o.who + ' ' + text;
+    var fs = TIER_PX[tier] * (o.mine ? 1 : 0.82);
+    var half = textW(text, fs) / 2 + 16;
     var n = w.document.createElement('span');
     n.className = cls;
     if (o.color) n.style.setProperty('--who', o.color);
     n.textContent = text;
-    n.style.left = clamp(px, 40, W - 40) + 'px';
-    n.style.top = clamp(py - 18, 20, H - 20) + 'px';
-    spawnFx(n, 950);
+    n.style.left = clamp(px, Math.min(half, W / 2), Math.max(W - half, W / 2)) + 'px';
+    n.style.top = clamp(py - 18, fs + 6, Math.max(fs + 6, H - fs)) + 'px';
+    spawnFx(n, tier >= 4 ? 1250 : 950);
+  }
+
+  /* ---------------------------------------------------------- 連擊大字 */
+
+  function comboHide() {
+    if (comboTimer) { clearTimeout(comboTimer); comboTimer = 0; }
+    if (comboEl) { comboEl.hidden = true; comboEl.classList.remove('bump'); }
+  }
+
+  /** 自己的連擊：每多一下數字就跳一次；連擊愈高字愈大、顏色愈熱 */
+  function comboShow(n, mult) {
+    if (!comboEl || !comboNum) return;
+    if (n < 2) { comboHide(); return; }
+    var tier = n >= 30 ? 4 : (n >= 20 ? 3 : (n >= 10 ? 2 : (n >= 5 ? 1 : 0)));
+    comboEl.hidden = false;
+    comboEl.setAttribute('data-tier', String(tier));
+    comboNum.textContent = String(n);
+    if (comboMult) comboMult.textContent = mult > 1.001 ? '×' + mult.toFixed(1) : '';
+    if (!reduceMotion) {
+      comboEl.classList.remove('bump'); void comboEl.offsetWidth; comboEl.classList.add('bump');
+    }
+    if (comboTimer) clearTimeout(comboTimer);
+    comboTimer = setTimeout(comboHide, COMBO_SHOW_MS);
   }
 
   /** 中央大字：倒數、階段提示、連擊里程碑。同時只留一句話。 */
@@ -302,11 +364,13 @@
     }
     recs = {};
     lastSnapBalloons = [];
+    comboHide();
     if (fx) fx.innerHTML = '';
   }
 
   w.Stage = {
     mount: mount, draw: draw, clear: clear, effect: effect, shout: shout, dart: dart,
+    combo: comboShow, comboHide: comboHide,
     hitTest: hitTest, setOptions: setOptions, measure: measure,
     size: function () { return { w: W, h: H, u: U }; },
     count: function () { return Object.keys(recs).length; },

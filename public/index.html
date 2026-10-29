@@ -223,9 +223,11 @@
           <div class="field" id="field" tabindex="0" role="application"
                aria-label="射擊場。用滑鼠或手指點擊氣球射擊；鍵盤用方向鍵移動準星，空白鍵或 Enter 發射。" data-i18n-attr="aria-label=field.aria">
             <div class="sky" aria-hidden="true"></div>
+            <div class="deco" id="deco" aria-hidden="true"></div>
             <div class="balloon-layer" id="balloon-layer" aria-hidden="true"></div>
-            <div class="counter" aria-hidden="true"></div>
+            <div class="counter" id="counter" aria-hidden="true"></div>
             <div class="fx" id="fx" aria-hidden="true"></div>
+            <div class="combo-big" id="combo-big" hidden aria-hidden="true"><b class="cb-n">0</b><span class="cb-lbl" data-i18n="hud.comboUnit">連擊</span><i class="cb-mult"></i></div>
             <div class="xhair" id="xhair" aria-hidden="true"></div>
           </div>
           <p class="sr-only" id="live-say" role="status" aria-live="polite"></p>
@@ -264,6 +266,7 @@
               <div class="trophy" id="ov-trophy" aria-hidden="true"></div>
               <h3 id="ov-result-title" data-i18n="result.title">時間到！</h3>
               <div class="sa sa-ov"><div class="sa-view" tabindex="0" aria-label="本局成績" data-i18n-attr="aria-label=result.aria">
+                <div class="resultstats" id="result-stats"></div>
                 <div class="resulttable" id="result-table"></div>
               </div></div>
               <p class="ovnote" id="ov-result-note" role="status"></p>
@@ -324,6 +327,8 @@
           <div class="dex" id="dex-pop"></div>
           <h3 class="lbl" data-i18n="help.avoid">不能射 — 射到扣分</h3>
           <div class="dex" id="dex-avoid"></div>
+          <h3 class="lbl" data-i18n="dex.lucky">福袋 — 加分或扣分，賭賭運氣</h3>
+          <div class="dex" id="dex-lucky"></div>
 
           <h3 class="lbl" data-i18n="help.controls">操作方式</h3>
           <ul class="plain">
@@ -347,6 +352,14 @@
             <h2 tabindex="-1" data-i18n="stats.title">我的戰績</h2>
           </div>
           <div class="statgrid" id="stat-grid"></div>
+          <h3 class="lbl" data-i18n="stats.totals">累計</h3>
+          <div class="statgrid" id="stat-totals"></div>
+          <h3 class="lbl" data-i18n="stats.bestByPace">各難度最高分</h3>
+          <div class="statgrid" id="stat-pace"></div>
+          <h3 class="lbl" data-i18n="stats.recent">最近的對局</h3>
+          <ul class="recent" id="stat-recent"></ul>
+          <h3 class="lbl"><span data-i18n="stats.achTitle">成就徽章</span><span class="pill" id="stat-ach-count"></span></h3>
+          <div class="achgrid" id="stat-ach"></div>
           <p class="note" data-i18n="stats.note">戰績只存在這台裝置的瀏覽器裡，沒有上傳到任何伺服器；換裝置或清掉瀏覽器資料就會歸零。</p>
           <div class="panel-foot">
             <button class="tk tk-sm" data-tone="paper" id="b-stats-reset" type="button"><span data-i18n="stats.reset">清除本機戰績</span></button>
@@ -472,12 +485,14 @@
 <script src="js/i18n.js"></script>
 <script src="js/locales.js"></script>
 <script src="js/ui-locales.js"></script>
+<script src="js/locales-extra.js"></script>
 <script src="js/keyboard.js"></script>
 <script src="js/config.js"></script>
 <script src="js/rng.js"></script>
 <script src="js/rules.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/storage.js"></script>
+<script src="js/achievements.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/art.js"></script>

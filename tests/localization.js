@@ -11,7 +11,7 @@ const dicts = {};
 const api = { register(lang, values) { Object.assign(dicts[lang] ||= {}, values); return api; } };
 const box = { I18N: api };
 box.window = box; box.self = box;
-for (const file of ['msgs.js', 'locales.js', 'ui-locales.js']) {
+for (const file of ['msgs.js', 'locales.js', 'ui-locales.js', 'locales-extra.js']) {
   if (fs.existsSync(path.join(jsDir, file))) vm.runInNewContext(read(path.join(jsDir, file)), box);
 }
 assert.deepEqual(Object.keys(dicts.en).sort(), Object.keys(dicts['zh-Hant']).sort(), 'Both locales must have the same keys');

@@ -87,16 +87,20 @@
 
   function dexCard(key) {
     var t = Rules.typeOf(key);
+    var pts = t.lucky ? w.I18N.t('dex.luckyPts')
+      : (t.boss ? w.I18N.t('dex.bossPts', { n: Rules.hitUnit(key) })
+        : (t.points > 0 ? '+' : '−') + Math.abs(t.points) + (globalThis.I18N ? globalThis.I18N.t("text.204") : " 分") + (t.hp > 1 ? (globalThis.I18N ? globalThis.I18N.t("text.203") : "・要 ") + t.hp + (globalThis.I18N ? globalThis.I18N.t("text.202") : " 下") : ''));
     return '<div class="dexcard ' + t.side + '">'
-      + '<div class="pic">' + Art.balloonSvg(key, t.hp) + '</div>'
+      + '<div class="pic">' + Art.balloonSvg(key, t.hp, undefined, t.hp) + '</div>'
       + '<div><div class="nm">' + esc(t.label) + '</div>'
-      + '<div class="pt">' + (t.points > 0 ? '+' : '−') + Math.abs(t.points) + (globalThis.I18N ? globalThis.I18N.t("text.204") : " 分") + (t.hp > 1 ? (globalThis.I18N ? globalThis.I18N.t("text.203") : "・要 ") + t.hp + (globalThis.I18N ? globalThis.I18N.t("text.202") : " 下") : '') + '</div>'
+      + '<div class="pt">' + esc(pts) + '</div>'
       + '<div class="ds">' + esc(t.hint) + '</div></div></div>';
   }
 
   function buildDex() {
     $('dex-pop').innerHTML = Rules.POP_TYPES.map(dexCard).join('');
     $('dex-avoid').innerHTML = Rules.AVOID_TYPES.map(dexCard).join('');
+    $('dex-lucky').innerHTML = Rules.LUCKY_TYPES.map(dexCard).join('');
   }
 
   /* ------------------------------------------------------------ 教學（純文字） */
@@ -107,6 +111,7 @@
     { get h() { return globalThis.I18N ? globalThis.I18N.t("text.197") : "要射的氣球"; }, get t() { return globalThis.I18N ? globalThis.I18N.t("text.196") : "紅氣球最常見，小黃氣球又小又快，星星氣球左右亂晃，金色氣球分數最高但很快就飄走。雙層氣球要射 2 下，巨無霸要射 3 下，最後一發會多拿一份分數。完整清單可以到首頁的「玩法與圖鑑」查看。"; } },
     { get h() { return globalThis.I18N ? globalThis.I18N.t("text.195") : "不能射的氣球"; }, get t() { return globalThis.I18N ? globalThis.I18N.t("text.194") : "綁著白鴿的氣球、祈福天燈和炸彈氣球不能射，射到會扣分。它們身上都有一個紅色圓圈斜線的禁止標記，旁邊的標籤是紅底的負分數，要射的氣球標籤則是青綠底的正分數。"; } },
     { get h() { return globalThis.I18N ? globalThis.I18N.t("text.193") : "連擊與彩虹加倍"; }, get t() { return globalThis.I18N ? globalThis.I18N.t("text.192") : "連續射中要射的氣球，每 5 連擊分數多 10%，最多多 50%；誤射不能射的氣球，連擊就歸零。射破彩虹氣球後的 6 秒內，你射中的正分全部加倍。"; } },
+    { get h() { return w.I18N.t('tut.newH'); }, get t() { return w.I18N.t('tut.newT'); } },
     { get h() { return globalThis.I18N ? globalThis.I18N.t("text.191") : "線上對戰"; }, get t() { return globalThis.I18N ? globalThis.I18N.t("text.190") : "線上最多 5 人共用同一片天空，同一顆氣球誰先射到誰得分，慢一步就會顯示「慢了一步」。局末會有結算畫面，可以選「再來一局」、「回到房間」或「回到首頁」。"; } },
     { get h() { return globalThis.I18N ? globalThis.I18N.t("text.189") : "準備好了嗎？"; }, get t() { return globalThis.I18N ? globalThis.I18N.t("text.188") : "按「立即練習」會開一局沒有電腦對手的簡單難度，可以放心試射；之後隨時能在設定裡「重看玩法教學」。"; } }
   ];
@@ -182,12 +187,22 @@
   function say(text) { $('live-say').textContent = text; }
 
   function handleEvents(events) {
+    var tr = w.I18N.t;
     for (var i = 0; i < events.length; i++) {
       var ev = events[i];
       var mine = !!ev.by && ev.by === meId();
 
       if (ev.k === 'go') { Sound.play('start'); Stage.shout((globalThis.I18N ? globalThis.I18N.t("text.180") : "開始！"), 'go'); continue; }
+      if (ev.k === 'spawn') {
+        if (ev.balloon && ev.balloon.type === 'boss') {
+          Sound.play('stage');
+          Stage.shout(tr('boss.appear'), 'boss', 1500);
+          say(tr('boss.appear'));
+        }
+        continue;
+      }
       if (ev.k === 'escape') {
+        if (ev.type === 'boss') { Stage.shout(tr('boss.escaped'), 'bosslost', 1300); say(tr('boss.escaped')); continue; }
         if (ev.side === 'pop') Sound.play('escape');
         continue;
       }
@@ -199,19 +214,32 @@
       if (ev.k === 'hit') {
         Stage.effect(ev, { who: mine ? '' : nameOfId(ev.by), color: colorOfId(ev.by), mine: mine });
         var t = Rules.typeOf(ev.type);
-        if (mine) say(Rules.describeEvent(ev, function () { return (globalThis.I18N ? globalThis.I18N.t("text.177") : "你"); }));
-        if (t.side === 'avoid') {
+        if (mine) {
+          if (t.lucky) say(tr('say.lucky', { n: (ev.gain > 0 ? '+' : '') + ev.gain }));
+          else if (t.boss) { if (ev.killed) say(tr('boss.killed')); }
+          else say(Rules.describeEvent(ev, function () { return (globalThis.I18N ? globalThis.I18N.t("text.177") : "你"); }));
+        }
+        if (ev.bad) {
           if (mine) { Sound.play('oops'); Sound.vibrate([30, 40, 30]); }
         } else if (!ev.killed) {
           if (mine) { Sound.play('bonk'); Sound.vibrate(12); }
         } else if (mine) {
-          if (ev.type === 'golden' || ev.type === 'rainbow') { Sound.play('shiny'); Sound.vibrate([12, 30, 18]); }
+          if (ev.type === 'golden' || ev.type === 'rainbow' || (t.lucky && ev.gain >= 70)) { Sound.play('shiny'); Sound.vibrate([12, 30, 18]); }
           else { Sound.play(t.hp > 1 ? 'smash' : 'pop'); Sound.vibrate(t.hp > 1 ? [14, 24, 20] : 12); }
           if (ev.type === 'rainbow') { Sound.play('buff', 0.15); Stage.shout((globalThis.I18N ? globalThis.I18N.t("text.176") : "分數加倍 6 秒！"), 'buff', 1100); }
         }
-        if (mine && ev.combo && ev.combo % Rules.COMBO_STEP === 0) {
-          Sound.play('combo');
-          Stage.shout(ev.combo + (globalThis.I18N ? globalThis.I18N.t("text.175") : " 連擊！"), 'combo', 800);
+        if (ev.bossReward) {
+          /* Boss 被擊破：全場都看得到，自己有分到獎勵就一起寫在畫面中央 */
+          var my = null;
+          for (var k = 0; k < ev.bossReward.length; k++) if (ev.bossReward[k].id === meId()) my = ev.bossReward[k];
+          Sound.play('shiny'); Sound.vibrate([20, 40, 20, 40, 30]);
+          Stage.shout(tr('boss.killed') + (my ? '\n' + tr('boss.reward', { n: my.gain }) : ''), 'boss', 1800);
+          say(tr('boss.killed') + (my ? ' ' + tr('boss.reward', { n: my.gain }) : ''));
+        }
+        if (mine) {
+          if (ev.bad || !ev.combo) Stage.comboHide();
+          else Stage.combo(ev.combo, Rules.comboMultiplier(ev.combo));
+          if (!ev.bad && ev.combo && ev.combo % Rules.COMBO_STEP === 0) Sound.play('combo');
         }
       }
     }
@@ -224,20 +252,27 @@
     if (ev.k === 'spawn') {
       for (i = 0; i < snap.balloons.length; i++) if (snap.balloons[i].id === ev.balloon.id) return;
       snap.balloons.push(ev.balloon);
+      if (ev.balloon.type === 'boss') snap.bossState = 'live';
       return;
     }
     if (ev.k === 'escape') {
       snap.balloons = snap.balloons.filter(function (b) { return b.id !== ev.id; });
+      if (ev.type === 'boss') snap.bossState = 'escaped';
       return;
     }
     if (ev.k === 'hit') {
       if (ev.killed) snap.balloons = snap.balloons.filter(function (b) { return b.id !== ev.id; });
       else for (i = 0; i < snap.balloons.length; i++) if (snap.balloons[i].id === ev.id) snap.balloons[i].hpLeft = ev.hpLeft;
+      if (ev.type === 'boss' && ev.killed) snap.bossState = 'killed';
       for (i = 0; i < snap.standings.length; i++) {
         var r = snap.standings[i];
-        if (r.id !== ev.by) continue;
+        if (r.id !== ev.by) {
+          /* Boss 擊破的獎勵：沒補最後一下的貢獻者也要加分 */
+          if (ev.bossReward) ev.bossReward.forEach(function (rw) { if (rw.id === r.id) r.score += rw.gain; });
+          continue;
+        }
         r.score = ev.score; r.combo = ev.combo; r.buffUntil = ev.buffUntil; r.shots += 1;
-        if (ev.side === 'pop') r.hits += 1; else r.badHits += 1;
+        if (ev.bad) r.badHits += 1; else r.hits += 1;
         if (ev.combo > r.bestCombo) r.bestCombo = ev.combo;
         r.accuracy = r.shots ? r.hits / r.shots : 0;
       }
@@ -320,13 +355,80 @@
           var aim = brain.step(snap, now);
           if (!aim) continue;
           var res = Rules.shoot(st, id, aim, now);
-          if (res.ok) events.push(res.event);
+          if (res.ok) { events.push(res.event); if (res.extra) events = events.concat(res.extra); }
         }
       }
       S.match = Rules.snapshot(st, now);
       if (events.length) handleEvents(events);
     }
     if (st.over && !S.soloResultShown) { S.soloResultShown = true; onSoloOver(); }
+  }
+
+  /* 一局結束：存最高分／累計／最近對局，並判定這局解鎖的成就（只存在本機） */
+  function recordMatch(mode, m, row, outcome) {
+    var prev = Store.best();
+    var newBest = (prev.score || 0) > 0 && row.score > prev.score;
+    Store.best({ score: row.score, combo: row.bestCombo, accuracy: row.accuracy });
+    var paceKey = Rules.paceOf(m.pace).key;
+    Store.setBestPace(paceKey, row.score);
+    var totals = Store.addTotals(row);
+    var fresh = Store.unlock(w.Achievements.evaluate(row, { outcome: outcome, players: m.standings.length, games: totals.games }));
+    Store.addRecord({
+      t: Date.now(), mode: mode, pace: paceKey, players: m.standings.length, rank: row.rank, outcome: outcome,
+      score: row.score, hits: row.hits, bad: row.badHits, acc: Math.round((row.accuracy || 0) * 100), combo: row.bestCombo
+    });
+    S.lastRecord = { newBest: newBest, fresh: fresh };
+  }
+
+  /* ---- 結算：我的成績卡（命中率圓環、四格數字、射破的氣球、Boss、新紀錄與新成就） ---- */
+  function ringSvg(pct) {
+    var c = 2 * Math.PI * 26;
+    return '<svg class="accring" viewBox="0 0 64 64" aria-hidden="true" focusable="false">'
+      + '<circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,241,214,.18)" stroke-width="8"/>'
+      + '<circle cx="32" cy="32" r="26" fill="none" stroke="#5BF0C8" stroke-width="8" stroke-linecap="round" transform="rotate(-90 32 32)" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - pct)).toFixed(1) + '"/></svg>';
+  }
+
+  function resultStatsHtml(m, me) {
+    var tr = w.I18N.t;
+    var row = null;
+    for (var i = 0; i < m.standings.length; i++) if (m.standings[i].id === me) row = m.standings[i];
+    var html = '';
+    if (m.bossState === 'killed' || m.bossState === 'escaped') {
+      html += '<div class="resboss ' + m.bossState + '"><span class="rb-ico">' + Art.balloonSvg('boss', m.bossState === 'killed' ? 1 : 12, undefined, 12) + '</span><span>'
+        + esc(tr(m.bossState === 'killed' ? 'res.bossKilled' : 'res.bossEscaped'))
+        + (row && row.bossHits ? '<small>' + esc(tr('res.bossShare', { n: row.bossHits })) + '</small>' : '') + '</span></div>';
+    }
+    if (!row) return html;
+    var acc = row.accuracy || 0;
+    html += '<div class="mycard"><div class="myring">' + ringSvg(acc) + '<b>' + Math.round(acc * 100) + '<small>%</small></b><span>' + esc(tr('res.acc')) + '</span></div>'
+      + '<div class="myfacts">'
+      + '<div><b>' + row.score + '</b><span>' + esc(tr('res.score')) + '</span></div>'
+      + '<div><b>' + row.hits + '</b><span>' + esc(tr('res.hits')) + '</span></div>'
+      + '<div><b>' + row.badHits + '</b><span>' + esc(tr('res.bad')) + '</span></div>'
+      + '<div><b>' + row.bestCombo + '</b><span>' + esc(tr('res.combo')) + '</span></div></div></div>';
+
+    var chips = '';
+    Rules.ORDER.forEach(function (k) {
+      var n = row.byType && row.byType[k];
+      if (!n) return;
+      var t = Rules.typeOf(k);
+      chips += '<span class="popchip ' + t.side + '" title="' + esc(t.label) + '"><span class="pc-pic">' + Art.balloonSvg(k, t.hp, undefined, t.hp) + '</span><b>×' + n + '</b><span class="pc-nm">' + esc(t.label) + '</span></span>';
+    });
+    html += '<div class="poplist"><span class="pl-title">' + esc(tr('res.popped')) + '</span>'
+      + (chips ? '<div class="pl-chips">' + chips + '</div>' : '<p class="pl-none">' + esc(tr('res.noPop')) + '</p>') + '</div>';
+
+    var rec = S.lastRecord;
+    if (rec && (rec.newBest || rec.fresh.length)) {
+      html += '<div class="newrec">';
+      if (rec.newBest) html += '<span class="nr-best">' + esc(tr('res.newBest')) + '</span>';
+      rec.fresh.forEach(function (id) {
+        var a = w.Achievements.byId(id);
+        if (!a) return;
+        html += '<span class="nr-ach"><span class="nr-pic">' + Art.badge(a.glyph, a.tier, true) + '</span><span><small>' + esc(tr('res.newAch')) + '</small>' + esc(tr('ach.' + id + '.name')) + '</span></span>';
+      });
+      html += '</div>';
+    }
+    return html;
   }
 
   function onSoloOver() {
@@ -338,7 +440,7 @@
       else if (rank.length === 1) outcome = 'win';
       else outcome = me.rank === 1 ? 'win' : 'lose';
       Store.recordResult('solo', outcome);
-      Store.best({ score: me.score, combo: me.bestCombo, accuracy: me.accuracy });
+      recordMatch('solo', S.match, me, outcome);
     }
     Sound.play(outcome === 'lose' ? 'lose' : 'win');
     showResult();
@@ -373,6 +475,7 @@
   function enterGameScreen() {
     document.body.classList.remove('playing');
     S.soloResultShown = false;
+    S.lastRecord = null;
     S.voted = false;
     lastChatId = 0;
     S.unread = 0;
@@ -723,11 +826,14 @@
       return '<div class="resrow' + (p.rank === 1 ? ' win' : '') + '" style="--who:' + colorHex(p.color) + '">'
         + '<span class="no">' + p.rank + '</span>'
         + '<span class="nm">' + esc(playerName(p)) + (p.id === me ? (globalThis.I18N ? globalThis.I18N.t("text.114") : "（你）") : '')
+        + (p.rank === 1 && m.standings.length > 1 ? ' <em class="mvp">' + esc(w.I18N.t('res.mvp')) + '</em>' : '')
         + (globalThis.I18N ? globalThis.I18N.t("text.113") : "<small>射中 ") + p.hits + (globalThis.I18N ? globalThis.I18N.t("text.112") : "・誤射 ") + p.badHits + (globalThis.I18N ? globalThis.I18N.t("text.111") : "・最佳連擊 ") + p.bestCombo
         + (globalThis.I18N ? globalThis.I18N.t("text.110") : "・命中率 ") + Math.round((p.accuracy || 0) * 100) + '%</small></span>'
         + '<span class="sc">' + p.score + '</span></div>';
     }).join('');
     paintOnce('result', html, function () { $('result-table').innerHTML = html; });
+    var statsHtml = resultStatsHtml(m, me);
+    paintOnce('resultstats', statsHtml + '|' + w.I18N.lang, function () { $('result-stats').innerHTML = statsHtml; });
 
     var note = '', extra = '';
     if (S.mode === 'solo') {
@@ -1003,7 +1109,7 @@
       enterGameScreen();
     }
     if (view.phase === 'countdown' && wasPhase !== 'countdown') {
-      S.lastStage = 0; S.warned = false; S.voted = false;
+      S.lastStage = 0; S.warned = false; S.voted = false; S.lastRecord = null;
       hideResult();
       Stage.clear();
       S.drewOver = false;
@@ -1015,7 +1121,7 @@
       if (r) {
         var outcome = r.rank === 1 ? (view.match.draw ? 'draw' : 'win') : 'lose';
         Store.recordResult('online', outcome);
-        Store.best({ score: r.score, combo: r.bestCombo, accuracy: r.accuracy });
+        recordMatch('online', view.match, r, outcome);
         Sound.play(outcome === 'lose' ? 'lose' : 'win');
       }
     }
@@ -1247,7 +1353,7 @@
       Sound.play('twang');
       Stage.dart(aim.px, aim.py);
       var res = Rules.shoot(st, 'me', { balloonId: balloonId, x: aim.x, y: aim.y }, now);
-      if (res.ok) { S.match = Rules.snapshot(st, now); handleEvents([res.event]); }
+      if (res.ok) { S.match = Rules.snapshot(st, now); handleEvents([res.event].concat(res.extra || [])); }
       return;
     }
     if (S.mode === 'online') {
@@ -1279,6 +1385,7 @@
   }
 
   function paintStats() {
+    var tr = w.I18N.t;
     var s = Store.stats(), b = Store.best();
     var cells = [
       [(globalThis.I18N ? globalThis.I18N.t("text.023") : "單機勝"), s.solo.win], [(globalThis.I18N ? globalThis.I18N.t("text.022") : "單機敗"), s.solo.lose],
@@ -1287,8 +1394,43 @@
       [(globalThis.I18N ? globalThis.I18N.t("text.017") : "最佳命中率"), Math.round((b.accuracy || 0) * 100) + '%']
     ];
     $('stat-grid').innerHTML = cells.map(function (c) {
-      return '<div class="statcard"><b>' + c[1] + '</b><span>' + c[0] + '</span></div>';
+      return '<div class="statcard"><b>' + c[1] + '</b><span>' + esc(c[0]) + '</span></div>';
     }).join('');
+
+    /* 累計 */
+    var t = Store.totals();
+    var overall = t.shots ? Math.round(t.hits / t.shots * 100) + '%' : tr('stats.none');
+    $('stat-totals').innerHTML = [
+      [t.games, tr('stats.games')], [t.hits, tr('stats.hits')], [t.shots, tr('stats.shots')], [overall, tr('stats.acc')]
+    ].map(function (c) { return '<div class="statcard"><b>' + c[0] + '</b><span>' + esc(c[1]) + '</span></div>'; }).join('');
+
+    /* 各難度最高分 */
+    var bp = Store.bestPace();
+    $('stat-pace').innerHTML = Rules.PACE_ORDER.map(function (k) {
+      return '<div class="statcard"><b>' + (bp[k] ? bp[k] : tr('stats.none')) + '</b><span>' + esc(Rules.paceOf(k).label) + '</span></div>';
+    }).join('');
+
+    /* 最近的對局 */
+    var recs = Store.records();
+    $('stat-recent').innerHTML = recs.length ? recs.map(function (r) {
+      var res = r.outcome === 'win' ? 'win' : (r.outcome === 'draw' ? 'draw' : 'lose');
+      return '<li class="recrow ' + res + '"><span class="rr-res">' + esc(tr('stats.' + res)) + '</span>'
+        + '<span class="rr-main"><b>' + esc(tr(r.mode === 'online' ? 'stats.modeOnline' : 'stats.modeSolo')) + '・' + esc(Rules.paceOf(r.pace).label) + '</b>'
+        + '<small>' + esc(tr('stats.rank', { n: r.rank })) + '・' + esc(tr('res.acc')) + ' ' + r.acc + '%・' + esc(tr('res.combo')) + ' ' + r.combo + '</small></span>'
+        + '<span class="rr-score">' + r.score + '</span></li>';
+    }).join('') : '<li class="empty">' + esc(tr('stats.recentEmpty')) + '</li>';
+
+    /* 成就徽章 */
+    var got = Store.achievements();
+    var n = 0;
+    var cards = w.Achievements.LIST.map(function (a) {
+      var on = !!got[a.id];
+      if (on) n += 1;
+      return '<div class="ach' + (on ? ' on' : '') + '"><span class="ach-pic">' + Art.badge(a.glyph, a.tier, on) + '</span>'
+        + '<span class="ach-tx"><b>' + esc(tr('ach.' + a.id + '.name')) + '</b><small>' + esc(tr('ach.' + a.id + '.desc')) + '</small></span></div>';
+    }).join('');
+    $('stat-ach').innerHTML = cards;
+    $('stat-ach-count').textContent = tr('stats.achCount', { n: n, m: w.Achievements.LIST.length });
   }
 
   function bindUi() {
@@ -1448,7 +1590,7 @@
     /* 戰績 */
     $('b-stats-reset').addEventListener('click', function () {
       askConfirm((globalThis.I18N ? globalThis.I18N.t("text.008") : "清除本機戰績？"), (globalThis.I18N ? globalThis.I18N.t("text.007") : "清除後無法復原，確定要繼續嗎？"), function () {
-        try { localStorage.removeItem(Store.KEY.stats); localStorage.removeItem(Store.KEY.best); } catch (err) {}
+        Store.clearProgress();
         paintStats();
         toast((globalThis.I18N ? globalThis.I18N.t("text.006") : "戰績已清除。"));
       }, (globalThis.I18N ? globalThis.I18N.t("text.005") : "清除"));
@@ -1543,6 +1685,8 @@
     bg.innerHTML = bgh;
     els('.bulbs').forEach(function (b) { b.innerHTML = Art.bulbString(14); });
     $('home-art').innerHTML = Art.homeArt();
+    $('deco').innerHTML = Art.scene();
+    $('counter').innerHTML = Art.prizes();
     document.documentElement.style.setProperty('--cur-aim', Art.crosshairCursor());
 
     buildDex();
@@ -1551,7 +1695,7 @@
     bindUi();
     bindOnline();
 
-    Stage.mount({ field: $('field'), layer: $('balloon-layer'), fx: $('fx'), xhair: $('xhair'), now: clockNow, onShoot: onShoot });
+    Stage.mount({ field: $('field'), layer: $('balloon-layer'), fx: $('fx'), xhair: $('xhair'), combo: $('combo-big'), now: clockNow, onShoot: onShoot });
     applyDisplayPrefs();
 
     var nick = Store.nick();
