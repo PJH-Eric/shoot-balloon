@@ -386,21 +386,28 @@
 
   /* ------------------------------------------------------------ 啟動 */
 
-  // Apply the existing ticket component without replacing share controls or their handlers.
+  // Apply the existing ticket component to the result trigger and dialog controls.
   function mountResultShareTickets() {
     var result = $('ov-result');
-    if (!result) return;
+    if (!result || !doc.body) return;
     function decorateShareControls() {
-      var buttons = result.querySelectorAll('.result-share button:not(.tk)');
+      var buttons = doc.querySelectorAll('#ov-result .result-share button:not(.tk), .result-share-dialog-layer button:not(.tk)');
       for (var i = 0; i < buttons.length; i++) {
         var button = buttons[i];
-        button.classList.add('tk', 'tk-sm');
-        button.setAttribute('data-tone', button.classList.contains('result-share-preview') ? 'paper' : 'gold');
+        var isClose = button.classList.contains('result-share-dialog-close');
+        var paper = button.classList.contains('result-share-image-download') || isClose;
+        button.classList.add('tk');
+        if (isClose) button.classList.add('tk-icon');
+        button.setAttribute('data-tone', paper ? 'paper' : 'gold');
       }
     }
     decorateShareControls();
-    new w.MutationObserver(decorateShareControls).observe(result, { childList: true, subtree: true });
+    new w.MutationObserver(decorateShareControls).observe(doc.body, { childList: true, subtree: true });
   }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', mountResultShareTickets, { once: true });
+  else mountResultShareTickets();
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', mountResultShareTickets, { once: true });
+  else mountResultShareTickets();
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', mountResultShareTickets, { once: true });
   else mountResultShareTickets();
 

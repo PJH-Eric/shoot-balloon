@@ -9,6 +9,7 @@
   var scriptURL = d.currentScript && d.currentScript.src;
   var renderer;
   var previews = new Set();
+  var openDialogs = new Set();
 
   // html2canvas 1.x does not parse modern computed color() / oklch() values.
   // Let the browser convert these colors to sRGB, only in the capture clone.
@@ -267,7 +268,7 @@
     url.hash = '';
     url.username = url.password = '';
     var title = d.title;
-    return { title: title, text: title + '\n' + content(root).slice(0, 4000), url: url.href };
+    return { title: title.split(/[｜|—–]/)[0].trim() || title, url: url.href };
   }
 
   function element(tag, cls, text) {
@@ -281,33 +282,39 @@
     if (root.querySelector('.result-share')) return;
     var ui = element('div', 'result-share');
     var actions = element('div', 'result-share-actions');
-    var share = element('button', 'result-share-button');
-    var prepare = element('button', 'result-share-image-prepare');
-    var preview = element('button', 'result-share-preview');
-    share.type = preview.type = prepare.type = 'button';
+    var trigger = element('button', 'result-share-trigger');
+    trigger.type = 'button';
+    var layer = element('div', 'result-share-dialog-layer');
+    layer.hidden = true;
+    var dialog = element('section', 'result-share-dialog');
+    var dialogId = 'result-share-title-' + Math.random().toString(36).slice(2, 8);
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', dialogId);
+    dialog.tabIndex = -1;
+    var header = element('header', 'result-share-dialog-header');
+    var title = element('h2', 'result-share-dialog-title');
+    title.id = dialogId;
+    var close = element('button', 'result-share-dialog-close');
+    close.type = 'button';
     var status = element('p', 'result-share-status');
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
-    var panel = element('div', 'result-share-panel');
-    panel.hidden = true;
-    var text = element('p', 'result-share-text');
-    text.tabIndex = 0;
-    var copy = element('button', 'result-share-button');
-    copy.type = 'button';
-    panel.append(text, copy);
-    var imagePanel = element('div', 'result-share-panel result-share-image-panel');
-    imagePanel.hidden = true;
     var image = element('img', 'result-share-image');
-    var imageTitle = element('h3', 'result-share-image-title');
-    var imageActions = element('div', 'result-share-actions');
-    var sendImage = element('button', 'result-share-image-send');
-    var download = element('button', 'result-share-image-download');
-    sendImage.type = download.type = 'button';
-    imageActions.append(sendImage, download);
-    imagePanel.append(imageTitle, image, imageActions);
-    actions.append(prepare, share, preview);
-    ui.append(actions, status, imagePanel, panel);
+    image.hidden = true;
+    var actionsInside = element('div', 'result-share-actions result-share-dialog-actions');
+    var share = element('button', 'result-share-button result-share-image-send');
+    var download = element('button', 'result-share-button result-share-image-download');
+    share.type = download.type = 'button';
+    share.disabled = download.disabled = true;
+    header.append(title, close);
+    actionsInside.append(share, download);
+    dialog.append(header, status, image, actionsInside);
+    layer.append(dialog);
+    actions.append(trigger);
+    ui.append(actions);
     root.appendChild(ui);
+
     var busy = false;
     var statusKey = '';
     var revision = 0;
@@ -319,41 +326,60 @@
       if (objectURL) w.URL.revokeObjectURL(objectURL);
       objectURL = file = null;
       image.removeAttribute('src');
-      imagePanel.hidden = true;
+      image.hidden = true;
       previews.delete(ui);
     }
-    ui._resultShareDispose = function () { revision++; busy = false; statusKey = ''; clearImage(); };
-
-    function currentText() {
-      var data = payload(root);
-      return data.text + '\n' + data.url;
+    function closeDialog(restoreFocus) {
+      if (layer.parentNode) layer.remove();
+      layer.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      d.removeEventListener('keydown', trapFocus, true);
+      openDialogs.delete(ui);
+      if (restoreFocus !== false && trigger.isConnected) trigger.focus({ preventScroll: true });
     }
+    ui._resultShareDispose = function () {
+      revision++;
+      busy = false;
+      statusKey = '';
+      closeDialog(false);
+      clearImage();
+    };
 
     function paint() {
       var m = messages();
-      share.textContent = busy ? m.busy : m.share;
-      prepare.textContent = busy ? m.busy : m.image;
-      sendImage.textContent = m.imageShare;
-      download.textContent = m.download;
+      trigger.textContent = m.open;
+      trigger.setAttribute('aria-expanded', String(!layer.hidden));
+      title.textContent = m.dialogTitle;
+      close.textContent = '×';
+      close.setAttribute('aria-label', m.close);
       image.alt = m.imageAlt;
-      imageTitle.textContent = m.imagePreview;
-      preview.textContent = m.preview;
-      preview.setAttribute('aria-expanded', String(!panel.hidden));
-      copy.textContent = m.copy;
-      text.setAttribute('aria-label', m.label);
+      share.textContent = m.imageShare;
+      download.textContent = m.download;
       status.textContent = statusKey ? m[statusKey] : '';
-      share.disabled = copy.disabled = prepare.disabled = busy;
-      sendImage.disabled = download.disabled = busy || !file;
-      if (!panel.hidden) {
-        var value = currentText();
-        if (text.textContent !== value) text.textContent = value;
+      dialog.setAttribute('aria-busy', String(busy));
+      trigger.disabled = busy;
+      share.disabled = download.disabled = busy || !file;
+    }
+    function trapFocus(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDialog(true);
+      } else if (event.key === 'Tab') {
+        var controls = Array.from(dialog.querySelectorAll('button:not([disabled])'));
+        if (!controls.length) { event.preventDefault(); dialog.focus(); return; }
+        var first = controls[0];
+        var last = controls[controls.length - 1];
+        if (event.shiftKey && d.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && d.activeElement === last) { event.preventDefault(); first.focus(); }
       }
     }
-
-    prepare.addEventListener('click', async function (event) {
-      event.stopPropagation();
-      if (busy) return;
-      if (file) { imagePanel.hidden = !imagePanel.hidden; return; }
+    function report(key, operation) {
+      if (!ui.isConnected || operation !== revision) return;
+      statusKey = key;
+      paint();
+    }
+    async function makeImage() {
+      if (busy || file) return;
       lastResult = content(root);
       var operation = ++revision;
       busy = true;
@@ -370,14 +396,34 @@
         objectURL = w.URL.createObjectURL(blob);
         previews.add(ui);
         image.src = objectURL;
-        imagePanel.hidden = false;
+        image.hidden = false;
         report('ready', operation);
       } catch (_) { report('imageError', operation); }
       finally {
         if (operation === revision) { busy = false; if (ui.isConnected) paint(); }
       }
+    }
+
+    trigger.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (busy) return;
+      layer.hidden = false;
+      d.body.appendChild(layer);
+      openDialogs.add(ui);
+      trigger.setAttribute('aria-expanded', 'true');
+      d.addEventListener('keydown', trapFocus, true);
+      close.focus({ preventScroll: true });
+      if (file) image.src = objectURL;
+      else makeImage();
     });
-    sendImage.addEventListener('click', async function (event) {
+    close.addEventListener('click', function (event) {
+      event.stopPropagation();
+      closeDialog(true);
+    });
+    layer.addEventListener('click', function (event) {
+      if (event.target === layer) closeDialog(true);
+    });
+    share.addEventListener('click', async function (event) {
       event.stopPropagation();
       if (busy || !file) return;
       var operation = ++revision;
@@ -388,10 +434,7 @@
           report('imageUnsupported', operation);
           return;
         }
-        var data = payload(root);
-        data.files = [file];
-        // PNG preparation is complete before this click, preserving user activation.
-        await w.navigator.share(data);
+        await w.navigator.share({ files: [file] });
         report('shared', operation);
       } catch (error) {
         report(error && error.name === 'AbortError' ? 'cancelled' : 'imageUnsupported', operation);
@@ -410,76 +453,6 @@
       link.remove();
     });
 
-    function report(key, operation) {
-      if (!ui.isConnected || operation !== revision) return;
-      statusKey = key;
-      paint();
-    }
-
-    async function copyText(value, operation) {
-      try {
-        if (!w.navigator.clipboard || !w.navigator.clipboard.writeText) throw new Error('Clipboard unavailable');
-        await w.navigator.clipboard.writeText(value);
-        report('copied', operation);
-      } catch (_) {
-        if (!ui.isConnected || operation !== revision) return;
-        panel.hidden = false;
-        report('manual', operation);
-        text.focus({ preventScroll: true });
-        var range = d.createRange();
-        range.selectNodeContents(text);
-        var selection = w.getSelection();
-        if (selection) { selection.removeAllRanges(); selection.addRange(range); }
-      }
-    }
-
-    share.addEventListener('click', async function (event) {
-      event.stopPropagation();
-      if (busy) return;
-      lastResult = content(root);
-      var data = payload(root);
-      var operation = ++revision;
-      busy = true;
-      statusKey = '';
-      paint();
-      try {
-        if (typeof w.navigator.share === 'function') {
-          try {
-            // Call within the user's click activation; do not await preparatory work.
-            await w.navigator.share(data);
-            report('shared', operation);
-          } catch (error) {
-            if (error && error.name === 'AbortError') report('cancelled', operation);
-            else if (operation === revision) await copyText(data.text + '\n' + data.url, operation);
-          }
-        } else await copyText(data.text + '\n' + data.url, operation);
-      } finally {
-        if (operation === revision) {
-          busy = false;
-          if (ui.isConnected) paint();
-        }
-      }
-    });
-    preview.addEventListener('click', function (event) {
-      event.stopPropagation();
-      lastResult = content(root);
-      panel.hidden = !panel.hidden;
-      paint();
-    });
-    copy.addEventListener('click', async function (event) {
-      event.stopPropagation();
-      if (busy) return;
-      lastResult = content(root);
-      var operation = ++revision;
-      busy = true;
-      paint();
-      await copyText(currentText(), operation);
-      if (operation === revision) {
-        busy = false;
-        if (ui.isConnected) paint();
-      }
-    });
-    // Language changes are global; retain no listeners for removed settlements.
     ui._resultSharePaint = paint;
     ui._resultShareReset = function () {
       var nextResult = content(root);
@@ -488,7 +461,7 @@
       revision++;
       busy = false;
       statusKey = '';
-      panel.hidden = true;
+      closeDialog(false);
       clearImage();
       paint();
     };
@@ -506,14 +479,14 @@
     if (!d.getElementById('result-share-style')) {
       var style = element('style', '');
       style.id = 'result-share-style';
-      style.textContent = '.result-share{box-sizing:border-box;flex:0 0 100%;width:100%;min-width:0;margin:12px 0 4px;font:inherit;color:inherit;text-align:center}.result-share *{box-sizing:border-box}.result-share-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}.result-share button{appearance:none;position:static;display:inline-flex;align-items:center;justify-content:center;min-height:48px;max-width:100%;padding:10px 16px;border:2px solid currentColor;border-radius:12px;background:var(--paper,#fffaf0);color:var(--ink,#28354b);font:inherit;font-weight:700;line-height:1.4;white-space:normal;overflow-wrap:anywhere;cursor:pointer;touch-action:manipulation;box-shadow:0 3px 0 #0002}.result-share button:hover{filter:brightness(.96)}.result-share button:active{transform:translateY(1px)}.result-share button:focus-visible,.result-share-text:focus-visible{outline:3px solid #2575cf;outline-offset:3px}.result-share button:disabled{opacity:.6;cursor:wait}.result-share-status{font-size:.9em;margin:6px 0;white-space:normal;overflow-wrap:anywhere}.result-share-status:empty{display:none}.result-share-panel{margin-top:10px;padding:12px;border:1px solid currentColor;border-radius:10px;min-width:0}.result-share-panel[hidden]{display:none!important}.result-share-text{white-space:pre-wrap;overflow-wrap:anywhere;text-align:start;user-select:text;-webkit-user-select:text;font:inherit;line-height:1.5;margin:0 0 10px}.result-share-preview{font-size:.9em!important}';
+      style.textContent = '.result-share{box-sizing:border-box;flex:0 0 100%;width:100%;min-width:0;margin:12px 0 4px;font:inherit;color:inherit;text-align:center}.result-share *{box-sizing:border-box}.result-share-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}.result-share button,.result-share-dialog-layer button:not(.tk){appearance:none;position:static;display:inline-flex;align-items:center;justify-content:center;min-height:48px;max-width:100%;padding:10px 16px;border:2px solid currentColor;border-radius:12px;background:var(--paper,#fffaf0);color:var(--ink,#28354b);font:inherit;font-weight:700;line-height:1.4;white-space:normal;overflow-wrap:anywhere;cursor:pointer;touch-action:manipulation;box-shadow:0 3px 0 #0002}.result-share button:hover,.result-share-dialog-layer button:not(.tk):hover{filter:brightness(.96)}.result-share button:active,.result-share-dialog-layer button:not(.tk):active{transform:translateY(1px)}.result-share button:focus-visible,.result-share-dialog-layer button:focus-visible{outline:3px solid #2575cf;outline-offset:3px}.result-share button:disabled,.result-share-dialog-layer button:disabled{opacity:.6;cursor:wait}.result-share-status{font-size:.9em;margin:6px 0;white-space:normal;overflow-wrap:anywhere}.result-share-status:empty{display:none}';
       d.head.appendChild(style);
-      style.textContent += '.result-share-image{display:block;max-width:100%;max-height:50vh;width:auto;height:auto;object-fit:contain;margin:0 auto 12px}.result-share-image-prepare{font-weight:800!important}';
-      style.textContent += '.result-share-image-panel{padding:18px!important;border:1px solid #d9d4f0!important;border-radius:20px!important;background:linear-gradient(145deg,#fbfaff,#f2f5ff)!important;box-shadow:0 12px 32px #30225f18}.result-share-image-title{margin:0 0 14px;color:#30294a;font-size:1.1em;font-weight:800;letter-spacing:.02em}.result-share-image{max-height:58vh;border:1px solid #e4e0ef;border-radius:14px;background:#fff;box-shadow:0 8px 22px #30225f20}.result-share-image-prepare{background:linear-gradient(135deg,#6558d8,#8b68dc)!important;border-color:#5146bc!important;color:#fff!important;box-shadow:0 4px 0 #413897,0 8px 18px #6558d838!important}.result-share-image-send{background:linear-gradient(135deg,#6558d8,#8270e6)!important;border-color:#5146bc!important;color:#fff!important}.result-share-image-download{background:#fff!important;border-color:#cbc5e5!important;color:#453c70!important}.result-share-image-prepare::before{content:"✦";margin-inline-end:8px}.result-share-image-send::before{content:"↗";margin-inline-end:8px;font-size:1.1em}.result-share-image-download::before{content:"↓";margin-inline-end:8px;font-size:1.15em}.result-share-status:not(:empty){display:inline-block;padding:6px 12px;border-radius:999px;background:#f0edfb;color:#514786;font-weight:650}.result-share-panel:not(.result-share-image-panel){background:#faf9ff;border-color:#e1ddef}';
+      style.textContent += '.result-share-dialog-layer{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:16px;background:rgba(29,24,48,.68);backdrop-filter:blur(8px)}.result-share-dialog-layer[hidden]{display:none!important}.result-share-dialog{box-sizing:border-box;display:flex;flex-direction:column;gap:16px;width:min(620px,100%);max-height:min(92vh,920px);overflow:auto;padding:20px;border:1px solid #e4dff4;border-radius:24px;background:linear-gradient(155deg,#fff,#f6f4ff);box-shadow:0 26px 90px #17112870;color:#2d2745;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#a9a0d2 #eeeaf8}.result-share-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 12px;border-bottom:1px solid #ebe7f6}.result-share-dialog-title{margin:0;font-size:1.25rem;line-height:1.3;font-weight:850;letter-spacing:.01em}.result-share-dialog-close:not(.tk){appearance:none;display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;border:1px solid #e3dff0;border-radius:16px;background:#f6f4fc;color:#514976;font:500 30px/1 system-ui;cursor:pointer}.result-share-dialog-close:not(.tk):hover{background:#ece8fa}.result-share-dialog .result-share-status:not(:empty){display:block;margin:0;padding:10px 14px;border:1px solid #e5e0f6;border-radius:14px;background:#f5f2ff;color:#514786;text-align:center;font-weight:650}.result-share-image{display:block;width:auto;height:auto;max-width:100%;max-height:58vh;object-fit:contain;margin:0 auto;border:1px solid #e4e0ef;border-radius:16px;background:#fff;box-shadow:0 10px 28px #30225f20}.result-share-dialog-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.result-share button.result-share-image-send,.result-share-dialog-layer button.result-share-image-send:not(.tk){background:linear-gradient(135deg,#6558d8,#8270e6)!important;border-color:#5146bc!important;color:#fff!important;box-shadow:0 4px 0 #413897,0 8px 18px #6558d838}.result-share button.result-share-image-download,.result-share-dialog-layer button.result-share-image-download:not(.tk){background:#fff!important;border-color:#cbc5e5!important;color:#453c70!important}.result-share button.result-share-image-send::before,.result-share-dialog-layer button.result-share-image-send:not(.tk)::before{content:\"↗\";margin-inline-end:8px;font-size:1.1em}.result-share button.result-share-image-download::before,.result-share-dialog-layer button.result-share-image-download:not(.tk)::before{content:\"↓\";margin-inline-end:8px;font-size:1.15em}.result-share button.result-share-trigger:not(.tk){min-width:160px;background:linear-gradient(135deg,#6558d8,#8b68dc)!important;border-color:#5146bc!important;color:#fff!important;font-weight:800!important;box-shadow:0 4px 0 #413897,0 8px 18px #6558d838}.result-share button.result-share-trigger::before{content:\"✦\";margin-inline-end:8px}.result-share-dialog button:focus-visible{outline:3px solid #897bdf;outline-offset:3px}.result-share-dialog::-webkit-scrollbar{width:10px}.result-share-dialog::-webkit-scrollbar-track{border-radius:8px;background:#eeeaf8}.result-share-dialog::-webkit-scrollbar-thumb{border:2px solid #eeeaf8;border-radius:8px;background:#a9a0d2}@media(max-width:520px){.result-share-dialog-layer{padding:10px}.result-share-dialog{gap:12px;padding:14px;border-radius:20px}.result-share-dialog-actions{gap:8px}.result-share-dialog-actions button{flex:1 1 145px}}';
     }
     scan(d.body);
     new w.MutationObserver(function (changes) {
       previews.forEach(function (ui) { if (!ui.isConnected) ui._resultShareDispose(); });
+      openDialogs.forEach(function (ui) { if (!ui.isConnected) ui._resultShareDispose(); });
       changes.forEach(function (change) {
         var target = change.target.nodeType === 1 ? change.target : change.target.parentElement;
         if (target && target.closest('.result-share')) return;
@@ -531,6 +504,7 @@
     }).observe(d.documentElement, { attributes: true, attributeFilter: ['lang'] });
     w.addEventListener('pagehide', function () {
       previews.forEach(function (ui) { ui._resultShareDispose(); });
+      openDialogs.forEach(function (ui) { ui._resultShareDispose(); });
     });
   }
 
