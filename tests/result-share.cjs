@@ -39,7 +39,7 @@ const { chromium } = require('playwright');
     assert.match(await page.evaluate(() => window.copied), /分數 123\nhttps:\/\/games.test\/island\/fruit-link\/$/);
     await page.evaluate(() => { navigator.share = undefined; navigator.clipboard.writeText = async () => { throw new Error('denied'); }; });
     await share.click();
-    assert.equal(await page.locator('.result-share-panel').isVisible(), true);
+    assert.equal(await page.locator('.result-share-panel:not(.result-share-image-panel)').isVisible(), true);
     assert.match(await page.locator('.result-share-text').innerText(), /分數 123/);
     assert.match(await page.evaluate(() => getSelection().toString()), /分數 123/);
     await page.evaluate(() => {
@@ -49,7 +49,7 @@ const { chromium } = require('playwright');
       button.replaceChildren(label);
     });
     await page.waitForTimeout(50);
-    assert.equal(await page.locator('.result-share-panel').isVisible(), true);
+    assert.equal(await page.locator('.result-share-panel:not(.result-share-image-panel)').isVisible(), true);
     assert.match(await page.evaluate(() => getSelection().toString()), /分數 123/);
     await page.evaluate(() => { document.documentElement.lang = 'en'; });
     await page.waitForFunction(() => document.querySelector('.result-share-actions .result-share-button').textContent === 'Share result');

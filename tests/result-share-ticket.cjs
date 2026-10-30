@@ -11,7 +11,7 @@ const { chromium } = require('playwright');
     const asset = name => path.join(__dirname, '../public/', name);
     await page.addStyleTag({ path: asset('css/style.css') });
     for (const file of ['js/ui.js', 'js/locales/result-share.js', 'js/result-share.js']) await page.addScriptTag({ path: asset(file) });
-    await page.waitForFunction(() => document.querySelectorAll('.result-share button.tk').length === 3);
+    await page.waitForFunction(() => document.querySelectorAll('.result-share button.tk').length === 6);
     const primary = page.locator('.result-share-actions .result-share-button');
     const appearance = await primary.evaluate(button => {
       const style = getComputedStyle(button);
@@ -29,7 +29,7 @@ const { chromium } = require('playwright');
     await page.waitForFunction(() => document.querySelector('.result-share-actions .result-share-button').textContent === 'Share result');
     assert.equal(await primary.evaluate(button => getComputedStyle(button).borderTopWidth), '3px');
     await page.locator('.result-share-preview').click();
-    assert.equal(await page.locator('.result-share-panel .tk').count(), 1);
+    assert.equal(await page.locator('.result-share-panel:not(.result-share-image-panel) .tk').count(), 1);
     console.log('PASS ticket share controls: native ticket appearance, theme tones, 48px targets, retained share handlers and localization');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
