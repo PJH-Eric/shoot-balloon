@@ -18,7 +18,7 @@ function validate(cfg, gaId) {
   if (cfg.title.length > 40 || cfg.description.length < 40 || cfg.description.length > 120) throw new Error('SEO 文案長度錯誤');
   if (!/^G-[A-Z0-9]+$/.test(gaId)) throw new Error('GA_MEASUREMENT_ID 格式錯誤');
   if (cfg.ogImage && !/^https:\/\//.test(cfg.ogImage)) throw new Error('ogImage 必須是 HTTPS 網址');
-  if (cfg.ogImage && !/\/assets\/images\/cover\.webp$/.test(cfg.ogImage)) throw new Error('ogImage 必須指向 WebP 遊戲封面');
+  if (cfg.ogImage && !/\/assets\/images\/(?:cover|seo)\.webp$/.test(cfg.ogImage)) throw new Error('ogImage 必須指向 WebP 遊戲封面或 SEO 分享圖');
 }
 
 function inject(root, env = process.env) {
