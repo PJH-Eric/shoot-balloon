@@ -47,10 +47,11 @@ const { chromium } = require('playwright');
       return { width: c.width, height: c.height, green, blue, signature: Array.from(new Uint8Array(await (await fetch(img.src)).arrayBuffer()).slice(0, 8)) };
     });
     assert.deepEqual(pixels.signature, [137,80,78,71,13,10,26,10]);
-    assert.equal(pixels.width, 300);
-    assert.ok(pixels.height >= 204 && pixels.height < 260, JSON.stringify(pixels));
+    assert.equal(pixels.width, 1080);
+    assert.ok(pixels.height > 700 && pixels.height < 1600, JSON.stringify(pixels));
     assert.ok(pixels.green > 25000, JSON.stringify(pixels)); // Full offscreen ranking tail.
     assert.equal(pixels.blue, 0); // Original buttons and sharing UI excluded.
+    assert.equal(await page.locator('.result-share-image-title').innerText(), '分享圖片預覽');
     assert.equal(await page.locator('#scores').evaluate(el => el.clientHeight), 80);
     await send.click();
     const shared = await page.evaluate(() => window.shared);
