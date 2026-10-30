@@ -386,6 +386,24 @@
 
   /* ------------------------------------------------------------ 啟動 */
 
+  // Apply the existing ticket component without replacing share controls or their handlers.
+  function mountResultShareTickets() {
+    var result = $('ov-result');
+    if (!result) return;
+    function decorateShareControls() {
+      var buttons = result.querySelectorAll('.result-share button:not(.tk)');
+      for (var i = 0; i < buttons.length; i++) {
+        var button = buttons[i];
+        button.classList.add('tk', 'tk-sm');
+        button.setAttribute('data-tone', button.classList.contains('result-share-preview') ? 'paper' : 'gold');
+      }
+    }
+    decorateShareControls();
+    new w.MutationObserver(decorateShareControls).observe(result, { childList: true, subtree: true });
+  }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', mountResultShareTickets, { once: true });
+  else mountResultShareTickets();
+
   function mount(root) {
     decorate(root);
     scrollAreas(root);

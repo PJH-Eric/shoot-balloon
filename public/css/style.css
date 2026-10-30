@@ -105,6 +105,8 @@ b { font-weight: 900; }
 /* ------------------------------------------------------------ 票券按鈕 */
 .tk {
   --bg: var(--gold); --fg: var(--ink); --shade: #B87708;
+}
+.tk, .result-share button.tk {
   position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .5em;
   min-height: 48px; min-width: 48px; padding: 0 22px;
   font-weight: 900; font-size: 17px; line-height: 1.1; letter-spacing: .06em; white-space: nowrap;
@@ -126,12 +128,13 @@ b { font-weight: 900; }
 .tk:not(.tk-sm):not(.tk-icon)::before { left: -8px; }
 .tk:not(.tk-sm):not(.tk-icon)::after { right: -8px; }
 .tk-sm { min-height: 44px; padding: 0 14px; font-size: 15px; }
+.result-share button.tk { padding: 10px 14px; font-size: 15px; line-height: 1.4; white-space: normal; }
 .tk-lg { min-height: 56px; padding: 0 28px; font-size: 19px; }
 .tk-xl { min-height: 64px; padding: 0 30px; font-size: 20px; width: 100%; }
 .tk-icon { padding: 0; width: 48px; height: 48px; }
 .tk-icon.tk-sm { width: 44px; height: 44px; min-height: 44px; }
-.tk:active, .tk.press { transform: translateY(3px); box-shadow: 0 1px 0 var(--shade); }
-.tk:disabled, .tk[aria-disabled="true"] { opacity: .42; filter: saturate(.3); cursor: not-allowed; box-shadow: 0 1px 0 var(--shade); transform: translateY(3px); }
+.tk:active, .tk.press, .result-share button.tk:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--shade); }
+.tk:disabled, .tk[aria-disabled="true"], .result-share button.tk:disabled { opacity: .42; filter: saturate(.3); cursor: not-allowed; box-shadow: 0 1px 0 var(--shade); transform: translateY(3px); }
 .tk[aria-busy="true"] { cursor: progress; background-image: repeating-linear-gradient(45deg, rgba(26, 18, 51, .16) 0 8px, transparent 8px 16px); animation: stripes .6s linear infinite; }
 @keyframes stripes { to { background-position: 16px 0; } }
 .tk.err { outline: 3px solid var(--bad); outline-offset: 2px; }
