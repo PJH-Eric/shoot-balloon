@@ -42,6 +42,15 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('.result-share-panel').isVisible(), true);
     assert.match(await page.locator('.result-share-text').innerText(), /分數 123/);
     assert.match(await page.evaluate(() => getSelection().toString()), /分數 123/);
+    await page.evaluate(() => {
+      const button = document.querySelector('section > button');
+      const label = document.createElement('span');
+      label.textContent = 'Play again';
+      button.replaceChildren(label);
+    });
+    await page.waitForTimeout(50);
+    assert.equal(await page.locator('.result-share-panel').isVisible(), true);
+    assert.match(await page.evaluate(() => getSelection().toString()), /分數 123/);
     await page.evaluate(() => { document.documentElement.lang = 'en'; });
     await page.waitForFunction(() => document.querySelector('.result-share-actions .result-share-button').textContent === 'Share result');
     await page.evaluate(() => { document.querySelector('#score').textContent = 'Score 999'; navigator.clipboard.writeText = async value => { window.copied = value; }; });

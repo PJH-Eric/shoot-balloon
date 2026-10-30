@@ -66,6 +66,7 @@
     var busy = false;
     var statusKey = '';
     var revision = 0;
+    var lastResult = content(root);
 
     function currentText() {
       var data = payload(root);
@@ -113,6 +114,7 @@
     share.addEventListener('click', async function (event) {
       event.stopPropagation();
       if (busy) return;
+      lastResult = content(root);
       var data = payload(root);
       var operation = ++revision;
       busy = true;
@@ -138,12 +140,14 @@
     });
     preview.addEventListener('click', function (event) {
       event.stopPropagation();
+      lastResult = content(root);
       panel.hidden = !panel.hidden;
       paint();
     });
     copy.addEventListener('click', async function (event) {
       event.stopPropagation();
       if (busy) return;
+      lastResult = content(root);
       var operation = ++revision;
       busy = true;
       paint();
@@ -156,6 +160,9 @@
     // Language changes are global; retain no listeners for removed settlements.
     ui._resultSharePaint = paint;
     ui._resultShareReset = function () {
+      var nextResult = content(root);
+      if (nextResult === lastResult) return;
+      lastResult = nextResult;
       revision++;
       busy = false;
       statusKey = '';
