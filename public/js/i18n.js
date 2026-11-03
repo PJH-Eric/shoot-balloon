@@ -351,7 +351,11 @@
       var translated = {};
       Object.keys(params).forEach(function (key) {
         var v = params[key];
-        translated[key] = Array.isArray(v) ? v.join(lang === 'en' ? ', ' : '、') : (v && typeof v === 'object' && v.key ? message(v) : v);
+        if (v && typeof v === 'object' && v.level) {
+          translated[key] = t('ai.n' + (v.idx == null ? 0 : v.idx)) + ' (' + t('pace.' + v.level + '.label') + ')';
+        } else {
+          translated[key] = Array.isArray(v) ? v.join(lang === 'en' ? ', ' : '、') : (v && typeof v === 'object' && v.key ? message(v) : v);
+        }
       });
       params = translated;
     }

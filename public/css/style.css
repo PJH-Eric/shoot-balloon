@@ -746,3 +746,12 @@ html[lang="en"] .home-title, html[lang="en"] h1 { overflow-wrap: anywhere; }
   .ovnote { font-size: 12px; line-height: 1.3; }
   .sa-ov { min-height: 120px; max-height: none; flex: 1 1 auto; }
 }
+
+/* 矮螢幕的結算保留所有動作，成績使用既有自訂捲動區。 */
+@media (max-height: 520px) and (orientation: landscape) {
+  #ov-result .ovcard { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto minmax(48px, 1fr) auto auto auto; height: 100%; }
+  #ov-result .ovcard > :not(#ov-result-extra):not(.result-share) { grid-column: 1 / -1; }
+  #ov-result .sa-ov { min-height: 0; max-height: none; }
+  #ov-result-extra { justify-content: flex-end; }
+  #ov-result .result-share { flex: none; width: auto; margin: 0; }
+}

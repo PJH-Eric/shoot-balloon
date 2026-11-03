@@ -45,6 +45,8 @@ runtime.I18N.setLang('en');
 assert.match(runtime.I18N.withLang('https://example.com/game?room=ABCD'), /room=ABCD&lang=en/);
 runtime.I18N.register('zh-Hant', { nested: '難度：{level}', normal: '普通' }).register('en', { nested: 'Difficulty: {level}', normal: 'Normal' });
 assert.equal(runtime.I18N.message({ key: 'nested', params: { level: { key: 'normal' } } }), 'Difficulty: Normal');
+runtime.I18N.register('en', { 'ai.n0': 'Slingshot', 'pace.normal.label': 'Normal', added: 'Added CPU opponent {ai}.' });
+assert.equal(runtime.I18N.message({ key: 'added', params: { ai: { level: 'normal', idx: 0 } } }), 'Added CPU opponent Slingshot (Normal).');
 let input = { id: 'nickname', tagName: 'INPUT', type: 'text', value: '玩家 Alice', selectionStart: 2, selectionEnd: 4, setSelectionRange(a, b) { this.selectionStart = a; this.selectionEnd = b; } };
 runtime.document = {
   documentElement: { setAttribute() {}, getAttribute() { return null; } },

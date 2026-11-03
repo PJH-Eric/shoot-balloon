@@ -770,7 +770,7 @@
       }
       $('pace-manage').hidden = !can.setPace;
       if (can.setPace) {
-        UI.seg($('pace-pick'), (v.paces || []).map(function (P) { return { value: P.key, label: P.label }; }),
+        UI.seg($('pace-pick'), (v.paces || []).map(function (P) { return { value: P.key, label: Rules.paceOf(P.key).label }; }),
           v.pace, function (k) { Sound.play('tick'); Online.send('room:setPace', { pace: k }); });
       }
 
