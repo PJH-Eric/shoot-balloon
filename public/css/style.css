@@ -418,6 +418,46 @@ kbd.key {
 .seatrow .nm { flex: 1; min-width: 80px; font-weight: 800; overflow-wrap: anywhere; }
 .seatrow .x { width: 40px; height: 40px; border: 2px solid var(--line2); background: transparent; border-radius: 4px; color: var(--cream); display: grid; place-items: center; }
 .manage { display: grid; gap: 6px; margin-top: 10px; }
+/* 房間等待區：名單與設定可捲動，主要動作固定在下方。 */
+#ov-wait .ovcard { max-width: 720px; gap: 16px; padding: 20px; border-color: var(--line2); }
+#ov-wait-title { flex: none; font-size: clamp(18px, 4.6vw, 24px); letter-spacing: .04em; text-wrap: balance; }
+#ov-wait .sa-ov { flex: 1 1 auto; min-height: 0; }
+#ov-wait .sa-view { display: grid; align-content: start; gap: 16px; padding: 2px 14px 8px 2px; }
+#ov-wait .seatlist { min-width: 0; align-content: start; gap: 10px; }
+#ov-wait .seatrow { min-width: 0; padding: 10px; gap: 8px; }
+#ov-wait .seatrow .nm { flex-basis: 100%; min-width: 0; }
+#ov-wait .seatrow .x { width: 48px; height: 48px; margin-left: auto; flex: none; }
+#ov-wait .seatrow:has(.x) .nm { flex: 1; }
+#ov-wait .manage { min-width: 0; margin: 0; padding: 14px; gap: 10px; background: var(--night2); border: 1px solid var(--line2); border-radius: 8px; }
+#ov-wait .seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+#ov-wait #round-pick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#ov-wait .seg-btn { min-width: 0; min-height: 52px; padding: 8px; letter-spacing: 0; overflow-wrap: anywhere; }
+#ov-wait-note { margin: 0; padding: 12px; border-left: 3px solid var(--gold); text-align: left; font-size: 14px; line-height: 1.6; background: var(--night2); }
+#ov-wait-btns { flex: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 10px; padding-top: 14px; border-top: 2px dashed var(--line2); }
+#ov-wait-btns .tk { grid-column: span 2; min-width: 0; min-height: 48px; padding: 8px 6px; gap: 5px; white-space: normal; overflow-wrap: anywhere; font-size: 14px; letter-spacing: 0; }
+#ov-wait-btns .tk-lg { grid-column: span 3; min-height: 56px; font-size: 17px; }
+#ov-wait-btns .tk:only-child { grid-column: 1 / -1; }
+#ov-wait-btns .ic { flex: none; }
+@media (min-width: 620px) {
+  #ov-wait .sa-view { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  #ov-wait .seatlist { grid-column: 1; grid-row: span 3; }
+  #ov-wait .manage { grid-column: 2; }
+  #ov-wait-note { grid-column: 1 / -1; }
+}
+@media (max-width: 619px) {
+  #ov-wait { padding-top: 10px; padding-left: 10px; padding-right: 10px; }
+  #ov-wait .ovcard { padding: 14px 12px; gap: 12px; }
+  #ov-wait-btns .tk:not(.tk-lg) { flex-direction: column; }
+}
+@media (max-height: 520px) and (min-width: 620px) {
+  #ov-wait .ovcard { display: grid; grid-template-columns: minmax(0, 1fr) 240px; grid-template-rows: auto minmax(0, 1fr); height: 100%; gap: 10px 16px; }
+  #ov-wait-title { grid-column: 1 / -1; }
+  #ov-wait .sa-ov { height: 100%; }
+  #ov-wait .sa-view { grid-template-columns: minmax(0, 1fr); }
+  #ov-wait .seatlist, #ov-wait .manage { grid-column: 1; grid-row: auto; }
+  #ov-wait-btns { grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: center; gap: 10px; padding: 0 0 4px 14px; border-top: 0; border-left: 2px dashed var(--line2); }
+  #ov-wait-btns .tk, #ov-wait-btns .tk-lg { grid-column: auto; min-height: 48px; font-size: 14px; padding: 6px; }
+}
 .resulttable { display: grid; gap: 8px; }
 .resrow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; background: var(--card2); border: 2px solid var(--line2); border-left: 8px solid var(--who, var(--line2)); border-radius: 4px; }
 .resrow.win { border-color: var(--gold); border-left-color: var(--who, var(--gold)); background: #3A2D70; }
