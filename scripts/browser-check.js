@@ -78,21 +78,30 @@ async function main() {
     const p = await mkPage(browser, 1024, 768, true); pages.push(p);
     const scan = () => p.evaluate(() => {
       const natives = [...document.querySelectorAll('select, textarea, input[type=checkbox], input[type=radio], input[type=range], progress, meter, details, dialog, input[type=number], input[type=color], input[type=date]')].map((e) => e.tagName + ':' + e.type);
-      const inputs = [...document.querySelectorAll('input')].filter((i) => !i.classList.contains('fld-in')).map((i) => i.id);
-      const bareBtn = [...document.querySelectorAll('button')].filter((b) => !/\b(tk|sw|seg-btn|x)\b/.test(b.className)).map((b) => b.id || b.className);
+      const inputs = [...document.querySelectorAll('input')]
+        .filter((i) => !i.classList.contains('fld-in') && !(i.matches('.lc-input') && i.closest('.lc-root')))
+        .map((i) => i.id || i.className);
+      const bareBtn = [...document.querySelectorAll('button')].filter((b) => {
+        const gameButton = /\b(tk|sw|seg-btn|x)\b/.test(b.className);
+        const chatButton = b.closest('.lc-root') && b.matches('.lc-me, .lc-iconbtn, .lc-btn, .lc-new, .lc-chip, .lc-bubble, .lc-join');
+        return !gameButton && !chatButton;
+      }).map((b) => b.id || b.className);
       const scrollers = [...document.querySelectorAll('*')].filter((el) => { const s = getComputedStyle(el); return (s.overflowY === 'auto' || s.overflowY === 'scroll' || s.overflowX === 'auto' || s.overflowX === 'scroll'); })
-        .filter((el) => !el.classList.contains('sa-view')).map((el) => el.id || el.className);
-      const nativeBars = [...document.querySelectorAll('.sa-view')].filter((el) => getComputedStyle(el).scrollbarWidth !== 'none').map((el) => el.id || el.className);
+        .filter((el) => !el.classList.contains('sa-view') && !(el.matches('.lc-log') && el.closest('.lc-root'))).map((el) => el.id || el.className);
+      const nativeBars = [...document.querySelectorAll('.sa-view, .lc-root .lc-log')].filter((el) => getComputedStyle(el).scrollbarWidth !== 'none').map((el) => el.id || el.className);
       const sa = [...document.querySelectorAll('.sa')].filter((el) => !el.querySelector(':scope > .sa-track')).length;
-      return { natives, inputs, bareBtn, scrollers, nativeBars, saWithoutTrack: sa, saCount: document.querySelectorAll('.sa').length };
+      const chatTracks = [...document.querySelectorAll('.lc-root .lc-body')]
+        .filter((el) => !el.querySelector(':scope > .lc-track > .lc-thumb')).length;
+      return { natives, inputs, bareBtn, scrollers, nativeBars, saWithoutTrack: sa, chatWithoutTrack: chatTracks, saCount: document.querySelectorAll('.sa').length };
     });
     let s = await scan();
     eq(s.natives.length, 0, '頁面沒有原生 select／checkbox／range 等控制項', s.natives.join(','));
-    eq(s.inputs.length, 0, '所有文字欄都是自訂 .fld-in', s.inputs.join(','));
-    eq(s.bareBtn.length, 0, '所有按鈕都是自訂元件（票券／開關／分段選單）', s.bareBtn.join(','));
-    eq(s.scrollers.length, 0, '所有捲動容器都是自訂 .sa-view', s.scrollers.join(','));
+    eq(s.inputs.length, 0, '所有文字欄都是遊戲或大廳聊天的自訂輸入框', s.inputs.join(','));
+    eq(s.bareBtn.length, 0, '所有按鈕都是遊戲或大廳聊天的自訂元件', s.bareBtn.join(','));
+    eq(s.scrollers.length, 0, '所有捲動容器都是遊戲或大廳聊天的自訂捲動區', s.scrollers.join(','));
     eq(s.nativeBars.length, 0, '自訂捲動區的原生捲軸都被隱藏', s.nativeBars.join(','));
     eq(s.saWithoutTrack, 0, '每個捲動區都有自訂軌道與滑塊');
+    eq(s.chatWithoutTrack, 0, '大廳聊天捲動區有自訂軌道與滑塊');
     ok(s.saCount >= 12, '捲動區涵蓋所有畫面與彈窗', 'n=' + s.saCount);
     const style = await p.evaluate(() => { const b = document.getElementById('b-solo'); const cs = getComputedStyle(b); return { app: cs.appearance, bg: cs.backgroundColor, br: cs.borderTopWidth }; });
     ok(style.br === '3px' && style.bg !== 'rgb(239, 239, 239)', '按鈕套用自訂外觀（不是瀏覽器預設灰）', JSON.stringify(style));
@@ -363,6 +372,10 @@ async function main() {
     const H = await mkPage(browser, 1024, 768, true), G = await mkPage(browser, 390, 844, true), Sx = await mkPage(browser, 844, 390, true);
     pages.push(H, G, Sx);
     await H.click('#b-online'); await H.waitForSelector('#conn-dot.ok', { timeout: 8000 });
+    ok(await H.locator('.lc-panel').isVisible(), '寬版大廳聊天室預設展開');
+    await H.click('.lc-min');
+    ok(await H.locator('.lc-panel').isHidden(), '可用收合按鈕關閉聊天面板，露出大廳操作');
+    ok(await H.locator('.lc-bubble').isVisible(), '收合後保留聊天氣泡入口');
     await H.fill('#room-name', '檢查房');
     await H.click('#b-create');
     await H.waitForSelector('#ov-wait:not([hidden])', { timeout: 5000 });
