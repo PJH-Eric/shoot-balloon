@@ -117,7 +117,8 @@
         setStatus('error', (globalThis.I18N ? globalThis.I18N.t("text.223") : "連不上伺服器：") + (why || (globalThis.I18N ? globalThis.I18N.t("text.222") : "未知錯誤")), 'srv.on.connectErr', { msg: why || T('srv.on.unknown', null, (globalThis.I18N ? globalThis.I18N.t("text.222") : "未知錯誤")) });
       });
 
-      ['lobby:rooms', 'room:sync', 'room:events', 'room:chat', 'room:error', 'room:closed', 'room:left']
+      ['lobby:rooms', 'room:sync', 'room:events', 'room:chat', 'room:error', 'room:closed', 'room:left',
+        'lobbychat:history', 'lobbychat:msg', 'lobbychat:online', 'lobbychat:error']
         .forEach(function (evt) {
           socket.on(evt, function (payload) { emitLocal(evt, payload); });
         });

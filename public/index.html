@@ -29,6 +29,7 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"射氣球","url":"https://pjh-eric.github.io/shoot-balloon/","description":"免費免下載的夜市射氣球，點破向上飄的氣球搶分，小心別誤射白鴿、天燈與炸彈氣球。單機四段難度，也能邀最多五人同場競賽、觀戰聊天，手機平板觸控即可輕鬆玩。","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"zh-Hant","genre":"射擊","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"},"image":"https://pjh-eric.github.io/shoot-balloon/assets/images/seo.webp","thumbnailUrl":"https://pjh-eric.github.io/shoot-balloon/assets/images/seo.webp","isPartOf":{"@type":"WebSite","url":"https://pjh-eric.github.io/game-lobby/"}}</script>
 <!--SEO:END-->
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/lobby-chat.css?v=20261112">
 <link rel="stylesheet" href="css/latency.css?v=20261015">
 
 <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
@@ -398,6 +399,8 @@
             <button class="sw" id="set-mark" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-mark"><span class="sw-knob"></span></button></div>
           <div class="setrow"><span class="setlbl" id="lbl-cursor"><span data-i18n="settings.cursor">準星滑鼠游標</span><small data-i18n="settings.cursorSub">對局時把滑鼠游標換成準星，觸控裝置不受影響</small></span>
             <button class="sw" id="set-cursor" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-cursor"><span class="sw-knob"></span></button></div>
+          <div class="setrow"><span class="setlbl" id="lbl-lobbychat"><span id="set-lobbychat-label">大廳聊天室</span><small id="set-lobbychat-sub">在線上大廳左下角顯示聊天氣泡</small></span>
+            <button class="sw" id="set-lobbychat" type="button" role="switch" aria-checked="true" aria-labelledby="lbl-lobbychat"><span class="sw-knob"></span></button></div>
           <p class="setinfo" id="set-audio-note"></p>
           <button class="tk tk-sm" data-tone="teal" id="b-settings-tutorial" type="button" data-icon="book"><span data-i18n="settings.tutorial">重看玩法教學</span></button>
         </div>
@@ -498,6 +501,7 @@
 <script src="js/art.js"></script>
 <script src="js/stage.js"></script>
 <script src="js/latency.js?v=20261015" data-skin="shoot-balloon"></script>
+<script src="js/lobby-chat.js?v=20261112"></script>
 <script src="js/online.js"></script>
 <script src="js/localize.js"></script>
 <script src="js/app.js"></script>

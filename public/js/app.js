@@ -1624,8 +1624,33 @@
 
   /* ------------------------------------------------------------ 線上事件 */
 
+  /* ------------------------------------------------------------ 線上：大廳聊天室（左下氣泡） */
+
+  var LobbyChatUI = null;
+  function bindLobbyChat() {
+    if (!window.LobbyChat) return;
+    LobbyChatUI = window.LobbyChat.create({
+      game: 'shoot-balloon',
+      mount: '#app',
+      watch: '#s-lobby',
+      getName: function () { return ($('lobby-nick').value || Store.nick() || '').trim(); },
+      setName: function (n) { var v = n.slice(0, 12); $('lobby-nick').value = v; Store.nick(v); },
+      join: function (name) { Online.send('lobbychat:join', { name: name }); },
+      leave: function () { Online.send('lobbychat:leave', {}); },
+      send: function (text, name) { Online.send('lobbychat:send', { text: text, name: name }); },
+      joinRoom: function (code) { Sound.unlock(); joinRoom(code, null); }
+    });
+    LobbyChatUI.bindSetting({ input: '#set-lobbychat', label: '#set-lobbychat-label', sub: '#set-lobbychat-sub', reset: '#b-settings-reset', event: 'swchange' });
+    Online.on('status', function (s) { LobbyChatUI.setConnected(!!s && s.status === 'connected'); });
+    Online.on('lobbychat:history', function (p) { LobbyChatUI.history(p.history, p.online); });
+    Online.on('lobbychat:msg', function (p) { LobbyChatUI.add(p.msg); });
+    Online.on('lobbychat:online', function (p) { LobbyChatUI.online(p.online); });
+    Online.on('lobbychat:error', function (p) { LobbyChatUI.error(p.code); });
+  }
+
   function bindOnline() {
     Online.on('status', connStatus);
+    bindLobbyChat();
     Online.on('hello', function (res) { if (res && res.serverTime) S.clockOffset = res.serverTime - Date.now(); });
     Online.on('lobby:rooms', paintRoomList);
     Online.on('room:sync', onSync);

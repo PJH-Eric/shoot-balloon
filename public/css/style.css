@@ -755,3 +755,12 @@ html[lang="en"] .home-title, html[lang="en"] h1 { overflow-wrap: anywhere; }
   #ov-result-extra { justify-content: flex-end; }
   #ov-result .result-share { flex: none; width: auto; margin: 0; }
 }
+
+/* ---------- 大廳聊天室：套用射氣球夜空配色 ---------- */
+body .lc-root {
+  --lc-accent: var(--gold); --lc-accent-ink: var(--ink);
+  --lc-panel-bg: var(--card); --lc-panel-solid: var(--night2);
+  --lc-ink: var(--cream); --lc-muted: var(--cream2); --lc-line: var(--line2);
+  --lc-field-bg: var(--night); --lc-sys-bg: rgba(255, 183, 61, .16); --lc-name: var(--gold);
+  --lc-font: var(--font); --lc-z: 95;
+}

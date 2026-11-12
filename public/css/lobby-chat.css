@@ -1,0 +1,284 @@
+/* ===== lobby-chat.css — 線上大廳聊天室（左下氣泡＋面板） =====
+ * 各遊戲用 `body .lc-root { --lc-*: … }`（選擇器要比這裡具體）覆寫這組變數，套自己的主題配色與字型。
+ */
+.lc-root {
+  --lc-accent: #6c5ce7;          /* 氣泡、送出鍵、加入鍵 */
+  --lc-accent-ink: #ffffff;      /* 主色上的文字 */
+  --lc-panel-bg: #ffffff;              /* 面板直接浮在上方重疊，不透明 */
+  --lc-panel-solid: #ffffff;           /* 手機全螢幕與預覽：不透明 */
+  --lc-ink: #2d2a3e;
+  --lc-muted: #7a7590;
+  --lc-line: rgba(45, 42, 62, 0.14);
+  --lc-field-bg: rgba(255, 255, 255, 0.92);
+  --lc-sys-bg: rgba(108, 92, 231, 0.12);
+  --lc-name: #5546c8;
+  --lc-shadow: 0 10px 30px rgba(30, 20, 60, 0.22), 0 2px 6px rgba(30, 20, 60, 0.12);
+  --lc-radius: 16px;
+  --lc-font: inherit;
+  --lc-z: 85;                    /* 各遊戲調成：高於大廳內容、低於設定彈窗與提示 */
+  --lc-gap: 12px;
+  --lc-bubble: 56px;
+  font-family: var(--lc-font);
+  color: var(--lc-ink);
+  position: fixed;
+  left: calc(var(--lc-gap) + env(safe-area-inset-left, 0px));
+  bottom: calc(var(--lc-gap) + env(safe-area-inset-bottom, 0px));
+  z-index: var(--lc-z);
+  pointer-events: none;
+  line-height: 1.4;
+  font-size: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+.lc-root[hidden], .lc-root [hidden] { display: none !important; }
+.lc-root * { box-sizing: border-box; }
+.lc-root button { font: inherit; color: inherit; -webkit-appearance: none; appearance: none; margin: 0; }
+.lc-root :focus-visible { outline: 3px solid var(--lc-accent); outline-offset: 2px; }
+
+/* ---------- 氣泡 ---------- */
+.lc-bubble {
+  pointer-events: auto;
+  width: var(--lc-bubble); height: var(--lc-bubble);
+  border-radius: 50%;
+  border: 0;
+  padding: 13px;
+  background: var(--lc-accent);
+  color: var(--lc-accent-ink);
+  --lc-bubble-dot: var(--lc-accent);
+  box-shadow: var(--lc-shadow), inset 0 -4px 0 rgba(0, 0, 0, 0.16), inset 0 3px 0 rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: transform .15s ease, filter .15s ease;
+}
+.lc-bubble svg { width: 100%; height: 100%; display: block; }
+.lc-bubble:hover { filter: brightness(1.06); transform: translateY(-2px); }
+.lc-bubble:active { transform: translateY(1px) scale(.97); }
+.lc-bubble.lc-bounce { animation: lc-bounce .7s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes lc-bounce {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-10px) scale(1.06, .96); }
+  55% { transform: translateY(0) scale(.96, 1.05); }
+  75% { transform: translateY(-4px); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* 收合時的新訊息預覽 */
+.lc-peek {
+  pointer-events: auto;
+  position: absolute;
+  left: calc(var(--lc-bubble) + 10px);
+  bottom: 6px;
+  max-width: min(260px, calc(100vw - var(--lc-bubble) - 2 * var(--lc-gap) - 20px));
+  padding: 8px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--lc-panel-solid);
+  box-shadow: var(--lc-shadow);
+  color: var(--lc-ink);
+  font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;
+}
+.lc-peek b { color: var(--lc-name); }
+.lc-peek.lc-in { animation: lc-peek 3s ease forwards; }
+@keyframes lc-peek {
+  0% { opacity: 0; transform: translateX(-8px); }
+  8% { opacity: 1; transform: none; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- 面板（桌機／平板） ---------- */
+.lc-panel {
+  pointer-events: auto;
+  width: 300px;
+  max-width: calc(100vw - 2 * var(--lc-gap));
+  height: clamp(280px, 50vh, 480px);
+  display: flex; flex-direction: column;
+  background: var(--lc-panel-bg);
+  border: 1px solid var(--lc-line);
+  border-radius: var(--lc-radius);
+  box-shadow: var(--lc-shadow);
+  overflow: hidden;
+  animation: lc-open .18s ease-out;
+  transition: transform .2s ease;
+}
+@keyframes lc-open { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+
+.lc-head {
+  position: relative;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid var(--lc-line);
+  flex: none;
+  touch-action: none;
+}
+.lc-grab { display: none; }
+.lc-titlewrap { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.lc-title { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--lc-ink); }
+.lc-online { font-size: 11.5px; color: var(--lc-muted); white-space: nowrap; }
+.lc-online::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #2ecc71; margin-right: 5px; vertical-align: 1px; }
+.lc-offline .lc-online::before { background: #b9b4c8; }
+
+.lc-me {
+  flex: 0 1 auto; min-width: 0; max-width: 46%;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 8px;
+  border: 1px solid var(--lc-line);
+  border-radius: 999px;
+  background: var(--lc-field-bg);
+  font-size: 12px; font-weight: 700;
+  cursor: pointer;
+}
+.lc-me-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-me-pen { width: 13px; height: 13px; flex: none; color: var(--lc-muted); }
+.lc-me-pen svg { width: 100%; height: 100%; display: block; }
+
+.lc-iconbtn {
+  flex: none;
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  padding: 7px;
+  border: 0; border-radius: 10px;
+  background: transparent;
+  color: var(--lc-muted);
+  cursor: pointer;
+}
+.lc-iconbtn svg { width: 100%; height: 100%; display: block; }
+.lc-iconbtn:hover { background: var(--lc-sys-bg); color: var(--lc-ink); }
+.lc-iconbtn:disabled { opacity: .45; cursor: default; background: transparent; }
+
+.lc-rename { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--lc-line); flex: none; }
+.lc-rename .lc-input { flex: 1 1 auto; min-width: 0; }
+
+.lc-btn {
+  flex: none;
+  padding: 0 12px; height: 34px;
+  border: 1px solid var(--lc-line); border-radius: 10px;
+  background: var(--lc-field-bg);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.lc-btn-main { background: var(--lc-accent); color: var(--lc-accent-ink); border-color: transparent; }
+
+/* ---------- 訊息區＋自繪捲軸 ---------- */
+.lc-body { position: relative; flex: 1 1 auto; min-height: 0; }
+.lc-log {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: 8px 16px 8px 10px;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  outline-offset: -3px;
+}
+.lc-log::-webkit-scrollbar { display: none; }
+.lc-track { position: absolute; top: 6px; bottom: 6px; right: 3px; width: 8px; border-radius: 8px; background: transparent; touch-action: none; }
+.lc-thumb { position: absolute; left: 1px; right: 1px; top: 0; min-height: 28px; border-radius: 8px; background: var(--lc-line); cursor: grab; transition: background .15s; touch-action: none; }
+.lc-track:hover .lc-thumb, .lc-thumb.lc-drag { background: var(--lc-muted); }
+.lc-thumb.lc-drag { cursor: grabbing; }
+
+.lc-empty { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 16px; text-align: center; color: var(--lc-muted); font-size: 13px; pointer-events: none; }
+
+.lc-msg { display: block; padding: 4px 2px; word-break: break-word; overflow-wrap: anywhere; }
+.lc-time { font-size: 10.5px; color: var(--lc-muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.lc-name { color: var(--lc-name); font-weight: 800; margin-right: 2px; }
+.lc-name::after { content: '：'; font-weight: 400; color: var(--lc-muted); margin-left: -2px; }
+.lc-text { color: var(--lc-ink); }
+.lc-me-tag { font-weight: 700; font-size: .9em; color: var(--lc-muted); }
+.lc-mine { margin: 2px -6px; padding: 4px 8px; border-radius: 10px; background: var(--lc-sys-bg); }
+
+.lc-sys {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px;
+  margin: 4px 0; padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--lc-sys-bg);
+  font-size: 13px;
+}
+.lc-sys .lc-time { margin-right: 0; }
+.lc-sys .lc-text { flex: 1 1 140px; min-width: 0; }
+.lc-sys .lc-name::after { content: none; }
+.lc-sys .lc-text::before { content: '🏠 '; }
+.lc-join {
+  margin-left: auto;
+  padding: 3px 12px; min-height: 28px;
+  border: 0; border-radius: 999px;
+  background: var(--lc-accent); color: var(--lc-accent-ink);
+  font-size: 12.5px; font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .15);
+}
+.lc-join:active { transform: translateY(1px); }
+
+.lc-new {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  padding: 5px 12px;
+  border: 0; border-radius: 999px;
+  background: var(--lc-accent); color: var(--lc-accent-ink);
+  font-size: 12px; font-weight: 800;
+  box-shadow: var(--lc-shadow);
+  cursor: pointer; white-space: nowrap;
+}
+
+/* ---------- 快捷短語與輸入列 ---------- */
+.lc-tray { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px 2px; border-top: 1px solid var(--lc-line); flex: none; }
+.lc-chip {
+  padding: 5px 10px; min-height: 30px;
+  border: 1px solid var(--lc-line); border-radius: 999px;
+  background: var(--lc-field-bg);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+.lc-chip:hover { border-color: var(--lc-accent); }
+.lc-chip:active { transform: translateY(1px); }
+
+.lc-tip { margin: 0; padding: 4px 12px 0; font-size: 12px; color: #d35400; flex: none; }
+
+.lc-form { display: flex; align-items: center; gap: 4px; padding: 8px; flex: none; border-top: 1px solid var(--lc-line); }
+.lc-tray:not([hidden]) ~ .lc-form, .lc-tray:not([hidden]) ~ .lc-tip ~ .lc-form { border-top: 0; }
+.lc-inputwrap { position: relative; flex: 1 1 auto; min-width: 0; }
+.lc-input {
+  width: 100%; height: 38px;
+  padding: 0 44px 0 12px;
+  border: 1.5px solid var(--lc-line);
+  border-radius: 12px;
+  background: var(--lc-field-bg);
+  color: var(--lc-ink);
+  font: inherit; font-size: 16px;     /* 16px：iOS 才不會自動放大畫面 */
+  -webkit-appearance: none; appearance: none;
+  outline: none;
+}
+.lc-rename .lc-input { padding-right: 12px; height: 34px; }
+.lc-input::placeholder { color: var(--lc-muted); opacity: 1; }
+.lc-input:focus { border-color: var(--lc-accent); box-shadow: 0 0 0 3px var(--lc-sys-bg); }
+.lc-input:disabled { opacity: .6; cursor: not-allowed; }
+.lc-count { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10.5px; color: var(--lc-muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.lc-count.lc-max { color: #d35400; font-weight: 800; }
+.lc-phrase.lc-on { background: var(--lc-sys-bg); color: var(--lc-accent); }
+.lc-send { background: var(--lc-accent); color: var(--lc-accent-ink); width: 38px; height: 38px; border-radius: 12px; padding: 9px; }
+.lc-send:hover { background: var(--lc-accent); color: var(--lc-accent-ink); filter: brightness(1.06); }
+.lc-send:disabled { background: var(--lc-line); color: var(--lc-muted); }
+
+/* ---------- 手機（窄或矮）：全螢幕面板 ---------- */
+.lc-root.lc-narrow { --lc-bubble: 52px; }
+.lc-root.lc-narrow.lc-open { inset: 0; left: 0; bottom: 0; z-index: 2147483647; }
+.lc-narrow .lc-panel {
+  position: fixed; inset: 0;
+  width: auto; max-width: none; height: auto;
+  border-radius: 0; border: 0;
+  background: var(--lc-panel-solid);
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  animation: lc-sheet .22s ease-out;
+}
+@keyframes lc-sheet { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.lc-narrow .lc-head { padding-top: 14px; cursor: grab; }
+.lc-narrow .lc-grab { display: block; position: absolute; top: 5px; left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: 4px; background: var(--lc-line); }
+.lc-narrow .lc-iconbtn { width: 40px; height: 40px; padding: 9px; }
+.lc-narrow .lc-send { width: 44px; height: 44px; padding: 11px; }
+.lc-narrow .lc-input { height: 44px; }
+.lc-narrow .lc-msg { font-size: 15px; }
+.lc-narrow .lc-chip { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+html.lc-lock, html.lc-lock body { overflow: hidden !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-bubble.lc-bounce, .lc-panel, .lc-narrow .lc-panel { animation: none; }
+  .lc-peek.lc-in { animation: none; }
+}
+@media print { .lc-root { display: none !important; } }
