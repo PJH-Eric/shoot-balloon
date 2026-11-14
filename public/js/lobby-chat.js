@@ -317,7 +317,7 @@
         store(K('open'), '1');
       }
       layout();
-      if (focus) setTimeout(() => { if (!input.disabled) input.focus(); else minBtn.focus(); }, 30);
+      if (focus) setTimeout(() => minBtn.focus({ preventScroll: true }), 30);
     }
 
     function close(focusBubble) {
