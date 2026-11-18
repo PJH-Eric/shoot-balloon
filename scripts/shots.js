@@ -177,85 +177,8 @@ async function runViewport(browser, vp) {
   await shot(page, vp, '11-戰績');
   await page.click('.screen.active [data-back="s-home"]'); await sleep(150);
 
-  await page.click('#b-online'); await sleep(900);
-  await shot(page, vp, '12-線上大廳');
   if (page.errs.length) page.errs.forEach((e) => issues.push(vp + '：' + e));
   await page.context().close();
-}
-
-async function runOnline(browser, vp) {
-  const V = VIEWPORTS[vp];
-  console.log('\n■ ' + V.label + '（線上）');
-  const H = await newPage(browser, vp), G = await newPage(browser, vp), I = await newPage(browser, vp);
-  try {
-    await openHome(H);
-    await H.click('#b-online'); await H.waitForSelector('#conn-dot.ok', { timeout: 8000 });
-    await H.fill('#room-name', '週五夜市場');
-    await H.click('#b-create');
-    await H.waitForSelector('#ov-wait:not([hidden])', { timeout: 5000 });
-    await sleep(300);
-    const code = await H.evaluate(() => window.SB.S.view.code);
-
-    await openHome(G);
-    await G.evaluate(() => localStorage.setItem('sb_nick', '阿花'));
-    await G.click('#b-online'); await G.waitForSelector('#conn-dot.ok', { timeout: 8000 });
-    await G.fill('#join-code', code); await G.click('#b-join');
-    await G.waitForSelector('#ov-wait:not([hidden])', { timeout: 5000 });
-
-    /* 房主加電腦、產生觀戰邀請 */
-    await H.evaluate(() => document.querySelector('#ai-add .seg-btn[data-v="normal"]').click());
-    await sleep(300);
-    await shot(H, vp, '13-線上房間等待');
-    await H.click('#ov-wait-btns [data-act="invite"]'); await sleep(250);
-    await H.evaluate(() => document.querySelector('#inv-role .seg-btn[data-v="spectator"]').click());
-    await H.click('#b-invite-make'); await sleep(500);
-    await shot(H, vp, '14-邀請彈窗');
-    const url = await H.inputValue('#invite-url');
-    await H.keyboard.press('Escape'); await sleep(150);
-
-    /* 邀請落地：先停在大廳，確認名字才加入 */
-    await I.goto(url, { waitUntil: 'load' }); await sleep(900);
-    await shot(I, vp, '15-邀請落地（尚未加入）');
-    const stillLobby = await I.evaluate(() => window.SB.S.screen === 's-lobby' && !window.SB.S.view);
-    if (!stillLobby) issues.push(vp + '：邀請連結開啟後沒有停在大廳');
-    await I.fill('#invite-nick', '路人觀眾');
-    await I.click('#b-invite-join');
-    await I.waitForSelector('#ov-wait:not([hidden])', { timeout: 5000 });
-
-    /* 開打 */
-    await G.click('#ov-wait-btns [data-act="ready"]');
-    await H.click('#ov-wait-btns [data-act="ready"]'); await sleep(300);
-    await H.click('#ov-wait-btns [data-act="start"]');
-    await H.waitForFunction(() => window.SB.S.view && window.SB.S.view.phase === 'playing', null, { timeout: 8000 });
-    await sleep(6000);
-    await shot(H, vp, '16-線上對戰（玩家）');
-    await shot(I, vp, '17-線上對戰（觀戰）');
-    /* 聊天 */
-    await G.evaluate(() => { document.getElementById('chat-input').value = '哈囉～準備好射氣球了嗎？'; document.getElementById('chat-form').requestSubmit(); });
-    await sleep(400);
-    const narrow = await H.evaluate(() => getComputedStyle(document.getElementById('side-fab')).display !== 'none');
-    if (narrow) { await H.click('#b-open-chat'); await sleep(350); }
-    await shot(H, vp, '18-聊天室與摘要');
-    if (narrow) { await H.click('#b-side-close'); await sleep(250); }
-
-    await H.waitForSelector('#ov-result:not([hidden])', { timeout: 30000 });
-    await sleep(300);
-    await shot(H, vp, '19-線上結算');
-    await H.click('#b-toroom'); await sleep(700);
-    await shot(H, vp, '20-回到房間');
-
-    /* 玩家都離開 → 觀戰者看到房間已結束 */
-    await G.click(await G.evaluate(() => (document.querySelector('#ov-wait-btns [data-act="quit"]') ? '#ov-wait-btns [data-act="quit"]' : '#side-actions [data-act="quit"]')));
-    await sleep(300);
-    await H.click('#ov-wait-btns [data-act="quit"]');
-    await I.waitForSelector('#ov-closed:not([hidden])', { timeout: 5000 }).catch(() => issues.push(vp + '：觀戰者沒有看到房間已結束'));
-    await sleep(300);
-    await shot(I, vp, '21-房間已結束（觀戰）');
-  } catch (e) {
-    issues.push(vp + '：線上流程中斷 ' + e.message.split('\n')[0]);
-    console.log('  ✗ 線上流程中斷：' + e.message.split('\n')[0]);
-  }
-  for (const p of [H, G, I]) { p.errs.forEach((e) => issues.push(vp + '：' + e)); await p.context().close(); }
 }
 
 (async () => {
@@ -268,7 +191,6 @@ async function runOnline(browser, vp) {
     const names = ONLY.length ? ONLY : Object.keys(VIEWPORTS);
     for (const vp of names) {
       await runViewport(browser, vp);
-      if (process.env.SKIP_ONLINE !== '1') await runOnline(browser, vp);
     }
   } finally {
     await browser.close();

@@ -1,24 +1,14 @@
 # 射氣球
 
 夜市攤位風的限時搶分遊戲。氣球從攤位後面往上飄，**射破加分**；綁著白鴿的氣球、祈福天燈和炸彈氣球**不能射**，射到會扣分。
-單機有四段電腦難度，線上最多 **5 人共用同一片天空**，同一顆氣球**誰先射到誰得分**，支援觀戰、邀請連結與聊天室。
+單機提供四段難度，可選擇獨自遊玩或加入電腦對手。
 手機／平板／桌機、直向橫向都能玩。
 
 ---
 
-## 最快開始（在自己電腦上玩）
+## 本機遊玩
 
-雙擊 **`啟動遊戲.bat`**（第一次會自動 `npm install`），瀏覽器會自己打開 <http://localhost:3030>。
-視窗裡會印出「同網段」網址（例如 `http://192.168.1.23:3030`），同一個 Wi-Fi 的手機、平板輸入同一個網址就會進到同一個大廳。
-
-```bash
-npm install
-npm start            # http://localhost:3030
-```
-
-需要 Node.js 26.12.1 或更新的 26.x 修補版本。
-
----
+直接開啟 `public/index.html`，或執行 `npm ci` 和 `npm start` 後前往 http://127.0.0.1:3030/。
 
 ## 玩法
 
@@ -30,7 +20,6 @@ npm start            # http://localhost:3030
 | 扣分 | 射到「不能射」的氣球（身上有紅圈斜線禁止標記、標籤是紅底負分） |
 | 射空 | 不扣分，只會拉低命中率 |
 | 連擊 | 連續射中要射的氣球，每 5 連擊 +10%，最多 +50%；誤射歸零 |
-| 線上 | 全部人看同一批氣球，同一顆氣球先射到的人得分，慢一步顯示「慢了一步」 |
 
 ### 氣球圖鑑
 
@@ -73,21 +62,10 @@ npm start            # http://localhost:3030
 
 ## 模式
 
-- **單機練習**：選難度、電腦對手 0／1／2／4 個、局長。可暫停（按鈕或 `P`），切到背景會自動暫停。
-- **線上對戰**：最多 5 個座位（真人與電腦共用）、觀戰者最多 19 人。
-  - **房號**：5 碼，不含容易看錯的 `0 O 1 I`。
-  - **房主設定**：難度、局長、加／移除電腦對手；開打後鎖住。
-  - **房間生命週期以實體玩家為準**：只要沒有任何真人玩家（只剩電腦或觀戰者），房間立刻關閉——撤銷邀請、停掉計時器與電腦、從大廳移除，並讓觀戰者看到「房間已結束」與回大廳／回首頁的出口；關閉後重連或邀請連結都不能讓它復活。斷線的人座位保留 60 秒。
-  - **觀戰**：席位滿了或對局已開始，進來的人會**明確地**變成觀戰身分，看得到完整天空，沒有射擊權限。
-  - **邀請連結**：房主產生指定身分（玩家／觀戰）的連結，有使用次數與期限，可撤銷。**開連結不會直接進房**：先停在大廳，顯示房間與可修改的暱稱，確認後才送出加入；角色由 token 決定，暱稱只是顯示用，伺服器會消毒並限制長度。連結失效時會說明是過期、撤銷、次數用完或房間已結束。
-  - **私人房**：只能憑邀請連結進入。
-  - **聊天室**：長度與頻率限制、房主禁言、未讀徽章。
-  - **結算**：疊在遊戲畫面上的浮層，固定三個動作——「再來一局」（全員投票）、「回到房間」（房主）、「回到首頁」。
+選擇難度、局長與電腦對手人數後開始。單機可以暫停、查看戰績並分享結算。
 
 ## 畫面配置
 
-- **寬版**（平板橫向、桌機）：左側資訊欄固定，**操作摘要在上、聊天室在下（左下）**，右邊全部留給射擊場；資訊欄可一鍵收合讓射擊場放大。
-- **窄版**（手機、平板直向）：射擊場佔滿畫面，資訊欄從左邊滑出（左下浮動開關、聊天未讀徽章）；手機橫向這個面板改成左右兩欄（摘要 | 聊天室）。
 - 右上角固定設定入口（≥48px）→ **Modal 彈窗**：背景音樂／音效開關與音量、聊天提示音、震動、減少動態、標籤放大、準星游標、重看教學、恢復預設；焦點鎖定、`Esc` 關閉、關閉後焦點回到齒輪。
 - 所有可見控制項都是**自訂元件**（票券按鈕、開關、滑桿、分段選單、文字欄、鍵帽、彈窗、**自訂捲軸**），沒有原生控制項或原生捲軸；內容超出時用自訂捲軸捲到末端。
 
@@ -97,56 +75,11 @@ npm start            # http://localhost:3030
 
 ---
 
-## 測試
+## 測試與部署
 
-```bash
-npm run test          # 規則、AI、房間、設定解析的單元測試（約 260 項）
-npm run test:online   # 開伺服器，用多個獨立 socket 用戶端打線上對戰
-npm run test:browser  # 真的瀏覽器：自訂元件、設定彈窗、單機整局、窄版面板、線上兩位玩家 + 觀戰者
-npm run verify        # 以上全部
-npm run shots         # 各畫面 × 各尺寸方向截圖到 screenshots/，順便稽核溢出與觸控目標
-```
-
-瀏覽器測試需要 Playwright 的 Chromium：`npx playwright install chromium`。
-
----
-
-## 部署（GitHub Pages 前端 + Render 後端）
-
-預設拓撲：**GitHub Pages** 放靜態前端（`public/`），**Render** 跑後端（Express + Socket.IO）。
-
-1. **Render（後端）**：New → Blueprint，指到這個 repo（讀 `render.yaml`；Web Service 明確指定 `region: singapore`）。
-   - Build：`npm ci --omit=dev`；Start：`node server.js`；Health check：`/health`。
-   - 環境變數（在 Render 服務設定裡）：`GAME_ALLOWED_ORIGIN` = 前端網址（例如 `https://你的帳號.github.io`，**不要**留 `*`）、`ROUND_MS`、`COUNTDOWN_MS`。`PORT` 由平台注入。
-   - 注意：Render 不支援修改既有服務的 region。要換區域必須建新服務、複製設定、更新下面的 `GAME_SERVER_URL`、確認 `/health` 與線上對局可用後才停舊服務。
-2. **GitHub Pages（前端）**：repo → Settings → Secrets and variables → Actions → **Variables** 新增 `GAME_SERVER_URL`，值填 Render 的 HTTPS 網址（結尾不要斜線）。推到 `main` 後 `.github/workflows/deploy-pages.yml` 會跑單元測試、把 URL 注入 `public/js/config.js` 並發布 `public/`。
-3. 本機測試前後端分離：`node scripts/inject-server-url.js --allow-local http://localhost:3030`，或在網址加 `?server=https://xxx`。
-
-`GAME_SERVER_URL` 是前端唯一的連線設定，集中在 `public/js/config.js`，會檢查格式；production 不會回退到 localhost、也不寫死任何免費平台網址。`.env.example` 列出所有環境變數。
-
-**免費層限制**：Render 免費服務閒置會休眠（第一次連線要等十幾秒，前端會顯示連線中）、檔案系統是暫時的——房間只存在記憶體，重啟後消失是預期行為，空房與打完很久的房間會自動回收。
-
-**回滾**：在 Render 的 Deploys 或 GitHub Actions 重新部署上一個已知可用的 commit。查看紀錄：GitHub repo → Actions；Render → Logs。
-
----
-
-## 專案結構
-
-```
-public/            前端（靜態）
-  index.html       所有畫面與彈窗
-  css/style.css    視覺系統
-  js/rules.js      規則核心（前後端共用的唯一真相）
-  js/ai.js         電腦射手（單機與伺服器共用）
-  js/ui.js         自訂元件（按鈕、開關、滑桿、分段選單、捲動區、彈窗）
-  js/art.js        氣球與場景 SVG
-  js/stage.js      射擊場繪製、瞄準與特效
-  js/app.js        畫面流程、單機迴圈、線上串接
-  js/audio.js      Web Audio 即時合成的音樂與音效
-server.js          Express + Socket.IO 權威伺服器
-lib/rooms.js       房間、座位、邀請、聊天、生命週期
-tests/ scripts/    測試與截圖
-```
+- `npm test` 檢查規則、電腦對手、語系與追蹤。
+- `npx playwright install chromium` 安裝瀏覽器後，執行 `npm run test:browser` 檢查單機流程與版面。
+- GitHub Pages 發布 `public/` 靜態檔案。
 
 ## 資產與授權
 

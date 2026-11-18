@@ -258,33 +258,15 @@ kbd.key {
 .home-note b { color: var(--gold); }
 
 /* ------------------------------------------------------------ 大廳 */
-.conn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--cream2); }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: #7A7396; border: 2px solid var(--ink); flex: none; }
 .dot.ok { background: var(--good); } .dot.warn { background: var(--gold); } .dot.bad { background: var(--bad); }
-.lobby-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-.lobby-box { display: grid; gap: 12px; align-content: start; padding: 14px; background: var(--card2); border: 2px dashed var(--line2); border-radius: 8px; --notch: var(--card2); }
 .setrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px; }
 .setlbl { font-weight: 800; letter-spacing: .04em; flex: 1; }
 .setlbl small { display: block; font-size: 12px; font-weight: 600; color: var(--cream2); letter-spacing: 0; }
-.roomlist { display: grid; gap: 10px; }
-.roomrow { --notch: var(--card2); display: grid; grid-template-columns: 1fr auto auto; gap: 8px 12px; align-items: center; padding: 12px 14px; background: var(--card2); border: 2px solid var(--line2); border-radius: 8px; }
-.rname { font-weight: 900; letter-spacing: .04em; min-width: 0; overflow-wrap: anywhere; }
-.rname small { display: block; font: 700 12px var(--num); color: var(--cream2); letter-spacing: .1em; }
-.rmeta { font-size: 13px; color: var(--cream2); white-space: nowrap; }
 .tag { display: inline-flex; align-items: center; padding: 2px 9px; height: 24px; font-size: 12px; font-weight: 900; letter-spacing: .06em; background: var(--line); border: 2px solid var(--line2); border-radius: 4px; color: var(--cream); white-space: nowrap; }
 .tag.playing { background: var(--red); border-color: var(--ink); } .tag.ready { background: var(--teal); color: var(--ink); border-color: var(--ink); }
 .tag.host { background: var(--gold); color: var(--ink); border-color: var(--ink); } .tag.off { background: var(--bad); color: var(--ink); border-color: var(--ink); }
 .tag.ai { background: var(--sky); color: var(--ink); border-color: var(--ink); } .tag.over { background: var(--violet); color: var(--ink); border-color: var(--ink); }
-.invite-card { --notch: var(--card2); display: grid; gap: 12px; padding: 16px; background: var(--card2); border: 3px solid var(--gold); border-radius: 8px; }
-.invite-card h3 { font-size: 20px; font-weight: 900; letter-spacing: .08em; color: var(--gold); }
-.invite-meta { font-size: 15px; font-weight: 700; }
-.invite-meta.bad { color: var(--bad); }
-.invite-out { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.invite-out .fld-in { flex: 1 1 200px; }
-.invitelist { display: grid; gap: 8px; }
-.invrow { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--card2); border: 2px solid var(--line2); border-radius: 6px; }
-.invrow.dead { opacity: .5; }
-.invrow .txt { flex: 1; font-size: 14px; }
 
 /* ------------------------------------------------------------ 說明、圖鑑、戰績 */
 .steps { display: grid; gap: 10px; counter-reset: s; }
@@ -407,13 +389,11 @@ kbd.key {
 .ovnote { font-size: 14px; color: var(--cream2); text-align: center; }
 .manage + .ovnote, .seatlist ~ .ovnote { margin-top: 12px; }
 .ovbtns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-.ovbtns.three { display: grid; grid-template-columns: 1.3fr 1fr 1fr; }
-.ovbtns.three .tk { padding: 6px 8px; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
-.ovbtns.three .tk span { min-width: 0; }
 .trophy { width: 72px; height: 72px; margin: -6px auto -6px; } .trophy-svg { width: 100%; height: 100%; }
 .seatlist { display: grid; gap: 8px; }
 .seg.wrap .seg-btn { flex: 1 1 calc(50% - 8px); }
 .ovbtns .tk { flex: 0 1 auto; }
+#ov-result-btns .tk { flex: 1 1 8rem; white-space: normal; }
 .seatrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--card2); border: 2px solid var(--line2); border-left: 8px solid var(--who, var(--line2)); border-radius: 4px; }
 .seatrow .nm { flex: 1; min-width: 80px; font-weight: 800; overflow-wrap: anywhere; }
 .seatrow .x { width: 40px; height: 40px; border: 2px solid var(--line2); background: transparent; border-radius: 4px; color: var(--cream); display: grid; place-items: center; }
@@ -484,16 +464,9 @@ kbd.key {
 .rankrow .no { font: 900 14px var(--num); color: var(--gold); text-align: center; } .rankrow .nm { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rankrow .sc { font: 900 16px var(--num); color: var(--good); text-align: right; } .rankrow .sc small { display: block; font: 700 11px var(--font); color: var(--cream2); }
 .mystat { font-size: 13px; color: var(--cream2); }
-.side-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 4px; padding: 0 10px 8px; border-top: 3px dashed var(--line2); }
-.chat-title { position: relative; flex: none; padding: 8px 2px 6px; font-size: 14px; font-weight: 900; letter-spacing: .14em; color: var(--gold); }
-.chat-title .unread { top: 2px; right: auto; left: 128px; }
-.sa-chat { flex: 1; min-height: 80px; background: #110D28; border: 2px solid var(--line2); border-radius: 4px; }
 #chat-log { padding: 8px; display: block; }
 .msg { margin: 0 0 6px; font-size: 14px; overflow-wrap: anywhere; } .msg .who { font-weight: 900; color: var(--gold); margin-right: 6px; }
 .msg.me .who { color: var(--good); } .msg.spec .who { color: var(--violet); } .msg.sys { color: var(--cream2); font-size: 12px; }
-.chatbar { flex: none; display: flex; gap: 8px; margin-top: 8px; } .chatbar .fld-in { min-height: 44px; font-size: 15px; }
-.chat-state { flex: none; min-height: 18px; font-size: 12px; color: var(--cream2); }
-.chat-state.bad { color: var(--bad); }
 .side-actions { flex: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 10px calc(10px + var(--safe-b)); border-top: 3px solid var(--ink); background: var(--night); }
 .side-actions .tk { flex: 1 1 auto; padding: 0 10px; font-size: 14px; }
 .game-shell.side-collapsed .side { display: none; }
@@ -516,14 +489,12 @@ kbd.key {
 @media (max-width: 899px), (max-aspect-ratio: 1/1) {
   .overlay { padding-bottom: calc(76px + var(--safe-b)); }
 }
-/* 手機橫向（很矮）：資訊面板改成左右兩欄，摘要在左、聊天室在右 */
+/* 手機橫向（很矮）：資訊面板改成左右兩欄，摘要使用整個面板寬度 */
 @media (max-height: 520px) and ((max-width: 899px) or (max-aspect-ratio: 1/1)) {
   .side { width: min(94vw, 700px); display: none; }
-  .side.open { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
+  .side.open { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
   .side-head { grid-column: 1 / -1; padding-top: calc(4px + var(--safe-t)); padding-bottom: 2px; }
-  .side-sum { grid-column: 1; grid-row: 2; max-height: none; }
-  .side-chat { grid-column: 2; grid-row: 2; margin-top: 0; border-top: 0; border-left: 3px dashed var(--line2); padding-top: 0; }
-  .side:has(.side-chat[hidden]) .side-sum { grid-column: 1 / -1; }
+  .side-sum { grid-column: 1 / -1; grid-row: 2; max-height: none; }
   .side-actions { grid-column: 1 / -1; grid-row: 3; padding-top: 6px; padding-bottom: calc(6px + var(--safe-b)); }
   .overlay { padding-bottom: 12px; padding-left: calc(76px + var(--safe-l)); padding-right: 76px; }
   .ovcard { padding: 10px 14px; gap: 8px; }
@@ -570,8 +541,6 @@ body.reduce-motion #bgdeco span { display: none; }
 
 /* 小螢幕收尾 */
 @media (max-width: 520px) {
-  .ovbtns.three { grid-template-columns: 1fr 1fr; } .ovbtns.three > :first-child { grid-column: 1 / -1; }
-  .roomrow { grid-template-columns: 1fr auto; } .roomrow .rmeta { grid-column: 1; } .roomrow .tk { grid-column: 2; grid-row: 1 / span 2; }
   .panel { padding: 28px 14px 16px; } .tk-xl { font-size: 18px; padding: 0 16px; }
   .ovcard { padding: 14px; }
 }
@@ -580,7 +549,6 @@ body.reduce-motion #bgdeco span { display: none; }
 .lang-toggle { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: calc(70px + env(safe-area-inset-right)); min-width: 48px; min-height: 48px; z-index: 1001; }
 .lang-toggle:focus-visible { outline: 3px solid #287dac; outline-offset: 3px; }
 .settings-fab { min-width: 48px; min-height: 48px; }
-.panel-head h2, .setrow label, .seatrow .nm, .rmeta { min-width: 0; overflow-wrap: anywhere; }
 .settings-card, .panel { max-width: 100%; box-sizing: border-box; }
 html[lang="en"] .home-title, html[lang="en"] h1 { overflow-wrap: anywhere; }
 
@@ -729,16 +697,11 @@ html[lang="en"] .home-title, html[lang="en"] h1 { overflow-wrap: anywhere; }
 .shout { -webkit-text-stroke-width: 5px; }
 
 /* 英文／窄版：結算次要按鈕與戰績標題不斷行 */
-.ovbtns.three .tk { white-space: nowrap; }
 @media (max-width: 480px) {
-  .ovbtns.three .tk:not(.tk-lg) { padding-left: 8px; padding-right: 8px; font-size: 14px; letter-spacing: 0; gap: 4px; }
-  .ovbtns.three .tk:not(.tk-lg) svg { width: 18px; height: 18px; }
 }
 .panel-head h2 { white-space: nowrap; font-size: clamp(18px, 5.4vw, 28px); min-width: 0; }
 
 /* 結算：英文按鈕完整顯示；矮螢幕保留足夠的成績捲動區 */
-.ovbtns.three .tk { white-space: normal; letter-spacing: 0; line-height: 1.1; }
-.ovbtns.three .tk:not(.tk-lg) { font-size: 15px; padding-left: 8px; padding-right: 8px; }
 .sa-ov { min-height: 130px; }
 @media (max-height: 640px) {
   .ovcard .trophy { display: none; }
